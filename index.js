@@ -2,7 +2,6 @@ require('dotenv').config();
 const express = require('express');
 const { createClient } = require('@supabase/supabase-js');
 const path = require('path');
-const swaggerJSDoc = require('swagger-jsdoc');
 const swaggerUi = require('swagger-ui-express');
 
 const app = express();
@@ -19,19 +18,19 @@ if (!supabaseUrl || !supabaseAnonKey) {
 
 const supabase = (supabaseUrl && supabaseAnonKey) ? createClient(supabaseUrl, supabaseAnonKey) : null;
 
-// Swagger UI configuration
-const swaggerOptions = {
-  definition: {
+// --- DYNAMIC SWAGGER SPECIFICATION GENERATOR ---
+const generateDynamicSwaggerSpec = async () => {
+  const spec = {
     openapi: '3.0.0',
     info: {
-      title: 'Supabase Headless CMS & Database API',
+      title: 'Supabase Dynamic Database CMS API',
       version: '1.0.0',
-      description: 'Fully dynamic REST API endpoints to manage database tables, columns, rows, and raw SQL scripts using your Supabase credentials.',
+      description: 'REST API endpoints generated dynamically from active PostgreSQL tables and columns. Authenticate using Bearer JWT.',
     },
     servers: [
       {
         url: '/',
-        description: 'API base URL',
+        description: 'Tunneled Server Base',
       },
     ],
     components: {
@@ -40,17 +39,204 @@ const swaggerOptions = {
           type: 'http',
           scheme: 'bearer',
           bearerFormat: 'JWT',
-          description: 'Authenticate by entering your Supabase session access_token (JWT).'
+          description: 'Enter your Supabase session access_token (JWT) to authorize requests.'
         }
-      }
+      },
+      schemas: {}
     },
-    security: [{ BearerAuth: [] }]
-  },
-  apis: ['./index.js'],
+    security: [{ BearerAuth: [] }],
+    paths: {}
+  };
+
+  if (!supabase) return spec;
+
+  try {
+    // 1. Fetch tables
+    const { data: tables, error: tErr } = await supabase.rpc('get_tables');
+    if (tErr || !tables) return spec;
+
+    // 2. Loop tables to get columns and build Swagger schemas/paths
+    for (const t of tables) {
+      const tableName = typeof t === 'object' ? t.table_name : t;
+
+      const { data: columns, error: cErr } = await supabase.rpc('get_columns', { t_name: tableName });
+      if (cErr || !columns) continue;
+
+      const schemaProperties = {};
+      const requiredFields = [];
+
+      columns.forEach(col => {
+        const { column_name, data_type, is_nullable } = col;
+        
+        let type = 'string';
+        let format = undefined;
+        
+        if (['integer', 'bigint', 'smallint'].includes(data_type)) {
+          type = 'integer';
+        } else if (['numeric', 'real', 'double precision'].includes(data_type)) {
+          type = 'number';
+        } else if (data_type === 'boolean') {
+          type = 'boolean';
+        } else if (['timestamp', 'timestamp without time zone', 'timestamp with time zone', 'date'].includes(data_type)) {
+          type = 'string';
+          format = 'date-time';
+        }
+
+        schemaProperties[column_name] = { type };
+        if (format) schemaProperties[column_name].format = format;
+
+        if (is_nullable === 'NO' && column_name !== 'id' && column_name !== 'created_at') {
+          requiredFields.push(column_name);
+        }
+      });
+
+      // Register schema
+      spec.components.schemas[tableName] = {
+        type: 'object',
+        properties: schemaProperties,
+      };
+      if (requiredFields.length > 0) {
+        spec.components.schemas[tableName].required = requiredFields;
+      }
+
+      // Add REST Paths for each table
+      spec.paths[`/api/tables/${tableName}/rows`] = {
+        get: {
+          summary: `Get all rows from "${tableName}"`,
+          tags: [tableName],
+          responses: {
+            200: {
+              description: `List of rows from "${tableName}"`,
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'array',
+                    items: { $ref: `#/components/schemas/${tableName}` }
+                  }
+                }
+              }
+            }
+          }
+        },
+        post: {
+          summary: `Insert a new row into "${tableName}"`,
+          tags: [tableName],
+          requestBody: {
+            required: true,
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: Object.keys(schemaProperties)
+                    .filter(k => k !== 'id' && k !== 'created_at')
+                    .reduce((acc, key) => {
+                      acc[key] = schemaProperties[key];
+                      return acc;
+                    }, {})
+                }
+              }
+            }
+          },
+          responses: {
+            201: {
+              description: 'Row created successfully',
+              content: {
+                'application/json': {
+                  schema: { $ref: `#/components/schemas/${tableName}` }
+                }
+              }
+            }
+          }
+        }
+      };
+
+      spec.paths[`/api/tables/${tableName}/rows/{id}`] = {
+        put: {
+          summary: `Update a row by ID in "${tableName}"`,
+          tags: [tableName],
+          parameters: [
+            {
+              name: 'id',
+              in: 'path',
+              required: true,
+              schema: { type: 'string' },
+              description: 'Primary Key ID of the row to update'
+            }
+          ],
+          requestBody: {
+            required: true,
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: Object.keys(schemaProperties)
+                    .filter(k => k !== 'id' && k !== 'created_at')
+                    .reduce((acc, key) => {
+                      acc[key] = schemaProperties[key];
+                      return acc;
+                    }, {})
+                }
+              }
+            }
+          },
+          responses: {
+            200: {
+              description: 'Row updated successfully',
+              content: {
+                'application/json': {
+                  schema: { $ref: `#/components/schemas/${tableName}` }
+                }
+              }
+            }
+          }
+        },
+        delete: {
+          summary: `Delete a row by ID from "${tableName}"`,
+          tags: [tableName],
+          parameters: [
+            {
+              name: 'id',
+              in: 'path',
+              required: true,
+              schema: { type: 'string' },
+              description: 'Primary Key ID of the row to delete'
+            }
+          ],
+          responses: {
+            200: {
+              description: 'Row deleted successfully',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      success: { type: 'boolean' },
+                      message: { type: 'string' }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      };
+    }
+  } catch (err) {
+    console.error('Error generating dynamic Swagger schema:', err);
+  }
+
+  return spec;
 };
 
-const swaggerSpec = swaggerJSDoc(swaggerOptions);
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+// Mount Swagger UI dynamically - queries active DB schemas on request
+app.use('/api-docs', swaggerUi.serve, async (req, res, next) => {
+  try {
+    req.swaggerDoc = await generateDynamicSwaggerSpec();
+  } catch (err) {
+    console.error('Swagger spec generation middleware error:', err);
+  }
+  next();
+}, swaggerUi.setup());
 
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
@@ -87,28 +273,8 @@ const authenticateUser = async (req, res, next) => {
   }
 };
 
-// --- API DOCUMENTATION & ROUTES ---
+// --- DYNAMIC REST ROUTINGS ---
 
-/**
- * @openapi
- * /api/config:
- *   get:
- *     summary: Retrieve public connection keys for the frontend client
- *     security: []
- *     responses:
- *       200:
- *         description: Connection settings retrieved successfully
- */
-
-/**
- * @openapi
- * /api/tables:
- *   get:
- *     summary: Get a list of all tables in the public schema
- *     responses:
- *       200:
- *         description: Array of table metadata objects
- */
 app.get('/api/tables', authenticateUser, async (req, res) => {
   try {
     const { data, error } = await supabase.rpc('get_tables');
@@ -120,21 +286,6 @@ app.get('/api/tables', authenticateUser, async (req, res) => {
   }
 });
 
-/**
- * @openapi
- * /api/tables/{tableName}/columns:
- *   get:
- *     summary: Get column schemas and datatypes for a table
- *     parameters:
- *       - in: path
- *         name: tableName
- *         required: true
- *         schema:
- *           type: string
- *     responses:
- *       200:
- *         description: Column metadata retrieved successfully
- */
 app.get('/api/tables/:tableName/columns', authenticateUser, async (req, res) => {
   const { tableName } = req.params;
   try {
@@ -147,38 +298,6 @@ app.get('/api/tables/:tableName/columns', authenticateUser, async (req, res) => 
   }
 });
 
-/**
- * @openapi
- * /api/tables/{tableName}/rows:
- *   get:
- *     summary: Get all data rows inside a table
- *     parameters:
- *       - in: path
- *         name: tableName
- *         required: true
- *         schema:
- *           type: string
- *     responses:
- *       200:
- *         description: Array of rows from the database
- *   post:
- *     summary: Insert a new row/record into a table
- *     parameters:
- *       - in: path
- *         name: tableName
- *         required: true
- *         schema:
- *           type: string
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *     responses:
- *       201:
- *         description: Row inserted successfully
- */
 app.get('/api/tables/:tableName/rows', authenticateUser, async (req, res) => {
   const { tableName } = req.params;
   try {
@@ -216,48 +335,6 @@ app.post('/api/tables/:tableName/rows', authenticateUser, async (req, res) => {
   }
 });
 
-/**
- * @openapi
- * /api/tables/{tableName}/rows/{id}:
- *   put:
- *     summary: Update an existing row in a table (assumes 'id' is primary key)
- *     parameters:
- *       - in: path
- *         name: tableName
- *         required: true
- *         schema:
- *           type: string
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *     responses:
- *       200:
- *         description: Row updated successfully
- *   delete:
- *     summary: Delete a row in a table (assumes 'id' is primary key)
- *     parameters:
- *       - in: path
- *         name: tableName
- *         required: true
- *         schema:
- *           type: string
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *     responses:
- *       200:
- *         description: Row deleted successfully
- */
 app.put('/api/tables/:tableName/rows/:id', authenticateUser, async (req, res) => {
   const { tableName, id } = req.params;
   try {
@@ -294,24 +371,6 @@ app.delete('/api/tables/:tableName/rows/:id', authenticateUser, async (req, res)
   }
 });
 
-/**
- * @openapi
- * /api/sql:
- *   post:
- *     summary: Run raw SQL queries/DDL commands directly on the database
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               query:
- *                 type: string
- *     responses:
- *       200:
- *         description: Query executed successfully
- */
 app.post('/api/sql', authenticateUser, async (req, res) => {
   const { query } = req.body;
   if (!query) {
@@ -334,5 +393,5 @@ app.get('*', (req, res) => {
 
 app.listen(port, () => {
   console.log(`[READY] Dynamic CMS server running on port ${port}`);
-  console.log(`[READY] Swagger documentation available at http://localhost:${port}/api-docs`);
+  console.log(`[READY] Dynamic schema-based Swagger docs available at http://localhost:${port}/api-docs`);
 });

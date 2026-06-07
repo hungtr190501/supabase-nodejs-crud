@@ -4,7 +4,7 @@ A fully dynamic, dark-mode headless CMS and Database Explorer app built with Nod
 
 ## Features
 - **Supabase Authentication**: Integrated SignUp / Login / LogOut.
-- **Interactive Swagger API Docs**: View and test REST endpoints dynamically at `/api-docs`!
+- **Dynamic Swagger API Docs**: View and test REST endpoints dynamically generated from active database tables at `/api-docs`!
 - **Home Dashboard Screen**: Visually browse database statistics, latency status, database health, and quick links.
 - **Dynamic Tables Selector**: Automatically reads and displays all tables in your database schema.
 - **Dynamic Column Input Generator**: Auto-inspects database columns types (`boolean`, `number`, `text`, `timestamp`) and renders corresponding form fields.
@@ -89,11 +89,11 @@ using (bucket_id = 'uploads');
 
 ---
 
-## 2. API Documentation
+## 2. Dynamic Swagger API Documentation
 
-Once the app is running in DroidDeploy (locally on port `3000` or via global tunnel), navigate to **`/api-docs`** in your browser. 
-- You will see the **Swagger UI** containing full API endpoint details.
-- To execute requests from the Swagger page, click **Authorize** at the top and paste your Supabase session `access_token` (which you can inspect in your browser's Local Storage or retrieve after logging in).
+Once the app is running in DroidDeploy (locally on port `3000` or via global tunnel), navigate to **`/api-docs`** in your browser.
+- **Dynamic Spec Generation**: Swagger UI inspects the database schema on-the-fly. If you create a new table `students` via the visual creator, refreshing `/api-docs` will instantly list `/api/tables/students/rows` endpoints with correct type schemas (`name: string`, `age: integer`, etc.).
+- **Interactive testing**: Click **Authorize** at the top, copy and paste your Supabase session `access_token` JWT to test REST insertions and updates directly inside the browser!
 
 ---
 
@@ -102,7 +102,7 @@ Once the app is running in DroidDeploy (locally on port `3000` or via global tun
 1. Commit and push the changes to your repository:
    ```bash
    git add .
-   git commit -m "add swagger api documentation, home dashboard, and storage diagnostics"
+   git commit -m "upgrade to dynamic database-driven Swagger API docs"
    git push
    ```
 2. Open the project detail screen in **DroidDeploy**.
