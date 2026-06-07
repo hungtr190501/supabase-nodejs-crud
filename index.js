@@ -18,6 +18,21 @@ if (!supabaseUrl || !supabaseAnonKey) {
 
 const supabase = (supabaseUrl && supabaseAnonKey) ? createClient(supabaseUrl, supabaseAnonKey) : null;
 
+const getSupabaseClient = (req) => {
+  if (!supabaseUrl || !supabaseAnonKey) return null;
+  const authHeader = req ? req.headers.authorization : null;
+  if (authHeader) {
+    return createClient(supabaseUrl, supabaseAnonKey, {
+      global: {
+        headers: {
+          Authorization: authHeader
+        }
+      }
+    });
+  }
+  return supabase;
+};
+
 // --- DYNAMIC SWAGGER SPECIFICATION GENERATOR ---
 const generateDynamicSwaggerSpec = async () => {
   const spec = {
@@ -277,7 +292,8 @@ const authenticateUser = async (req, res, next) => {
 
 app.get('/api/tables', authenticateUser, async (req, res) => {
   try {
-    const { data, error } = await supabase.rpc('get_tables');
+    const client = getSupabaseClient(req);
+    const { data, error } = await client.rpc('get_tables');
     if (error) throw error;
     res.json(data || []);
   } catch (error) {
@@ -289,7 +305,8 @@ app.get('/api/tables', authenticateUser, async (req, res) => {
 app.get('/api/tables/:tableName/columns', authenticateUser, async (req, res) => {
   const { tableName } = req.params;
   try {
-    const { data, error } = await supabase.rpc('get_columns', { t_name: tableName });
+    const client = getSupabaseClient(req);
+    const { data, error } = await client.rpc('get_columns', { t_name: tableName });
     if (error) throw error;
     res.json(data || []);
   } catch (error) {
@@ -301,9 +318,10 @@ app.get('/api/tables/:tableName/columns', authenticateUser, async (req, res) => 
 app.get('/api/tables/:tableName/rows', authenticateUser, async (req, res) => {
   const { tableName } = req.params;
   try {
-    let query = supabase.from(tableName).select('*');
+    const client = getSupabaseClient(req);
+    let query = client.from(tableName).select('*');
     
-    const { data: columns } = await supabase.rpc('get_columns', { t_name: tableName });
+    const { data: columns } = await client.rpc('get_columns', { t_name: tableName });
     const hasCreatedAt = columns && columns.some(col => col.column_name === 'created_at');
     
     if (hasCreatedAt) {
@@ -322,7 +340,8 @@ app.get('/api/tables/:tableName/rows', authenticateUser, async (req, res) => {
 app.post('/api/tables/:tableName/rows', authenticateUser, async (req, res) => {
   const { tableName } = req.params;
   try {
-    const { data, error } = await supabase
+    const client = getSupabaseClient(req);
+    const { data, error } = await client
       .from(tableName)
       .insert([req.body])
       .select();
@@ -338,7 +357,8 @@ app.post('/api/tables/:tableName/rows', authenticateUser, async (req, res) => {
 app.put('/api/tables/:tableName/rows/:id', authenticateUser, async (req, res) => {
   const { tableName, id } = req.params;
   try {
-    const { data, error } = await supabase
+    const client = getSupabaseClient(req);
+    const { data, error } = await client
       .from(tableName)
       .update(req.body)
       .eq('id', id)
@@ -358,7 +378,8 @@ app.put('/api/tables/:tableName/rows/:id', authenticateUser, async (req, res) =>
 app.delete('/api/tables/:tableName/rows/:id', authenticateUser, async (req, res) => {
   const { tableName, id } = req.params;
   try {
-    const { error } = await supabase
+    const client = getSupabaseClient(req);
+    const { error } = await client
       .from(tableName)
       .delete()
       .eq('id', id);
@@ -377,7 +398,8 @@ app.post('/api/sql', authenticateUser, async (req, res) => {
     return res.status(400).json({ error: 'SQL Query query is required' });
   }
   try {
-    const { data, error } = await supabase.rpc('execute_sql', { sql_query: query });
+    const client = getSupabaseClient(req);
+    const { data, error } = await client.rpc('execute_sql', { sql_query: query });
     if (error) throw error;
     res.json({ success: true, result: data });
   } catch (error) {

@@ -1284,7 +1284,9 @@ using (bucket_id = 'uploads');</pre>
             const val = row[col.column_name];
             let displayVal = val;
 
-            if (val === null || val === undefined) {
+            if (col.column_name === 'id' && typeof val === 'string' && val.length > 8) {
+              displayVal = `<span style="font-family: 'Fira Code', monospace; font-size: 0.85rem; color: var(--text-muted); padding: 0.2rem 0.5rem; background: rgba(255,255,255,0.03); border-radius: 4px;" title="${val}">...${val.slice(-8)}</span>`;
+            } else if (val === null || val === undefined) {
               displayVal = '<span style="color:var(--text-muted); font-style:italic;">NULL</span>';
             } else if (typeof val === 'boolean') {
               displayVal = val ? '🟢 TRUE' : '🔴 FALSE';
