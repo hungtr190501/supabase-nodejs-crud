@@ -2,6 +2,8 @@ require('dotenv').config();
 const express = require('express');
 const { createClient } = require('@supabase/supabase-js');
 const path = require('path');
+const swaggerJSDoc = require('swagger-jsdoc');
+const swaggerUi = require('swagger-ui-express');
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -16,6 +18,39 @@ if (!supabaseUrl || !supabaseAnonKey) {
 }
 
 const supabase = (supabaseUrl && supabaseAnonKey) ? createClient(supabaseUrl, supabaseAnonKey) : null;
+
+// Swagger UI configuration
+const swaggerOptions = {
+  definition: {
+    openapi: '3.0.0',
+    info: {
+      title: 'Supabase Headless CMS & Database API',
+      version: '1.0.0',
+      description: 'Fully dynamic REST API endpoints to manage database tables, columns, rows, and raw SQL scripts using your Supabase credentials.',
+    },
+    servers: [
+      {
+        url: '/',
+        description: 'API base URL',
+      },
+    ],
+    components: {
+      securitySchemes: {
+        BearerAuth: {
+          type: 'http',
+          scheme: 'bearer',
+          bearerFormat: 'JWT',
+          description: 'Authenticate by entering your Supabase session access_token (JWT).'
+        }
+      }
+    },
+    security: [{ BearerAuth: [] }]
+  },
+  apis: ['./index.js'],
+};
+
+const swaggerSpec = swaggerJSDoc(swaggerOptions);
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
@@ -52,9 +87,28 @@ const authenticateUser = async (req, res, next) => {
   }
 };
 
-// --- API ROUTES ---
+// --- API DOCUMENTATION & ROUTES ---
 
-// 1. Get list of all tables in the public schema
+/**
+ * @openapi
+ * /api/config:
+ *   get:
+ *     summary: Retrieve public connection keys for the frontend client
+ *     security: []
+ *     responses:
+ *       200:
+ *         description: Connection settings retrieved successfully
+ */
+
+/**
+ * @openapi
+ * /api/tables:
+ *   get:
+ *     summary: Get a list of all tables in the public schema
+ *     responses:
+ *       200:
+ *         description: Array of table metadata objects
+ */
 app.get('/api/tables', authenticateUser, async (req, res) => {
   try {
     const { data, error } = await supabase.rpc('get_tables');
@@ -66,7 +120,21 @@ app.get('/api/tables', authenticateUser, async (req, res) => {
   }
 });
 
-// 2. Get list of columns and datatypes for a specific table
+/**
+ * @openapi
+ * /api/tables/{tableName}/columns:
+ *   get:
+ *     summary: Get column schemas and datatypes for a table
+ *     parameters:
+ *       - in: path
+ *         name: tableName
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Column metadata retrieved successfully
+ */
 app.get('/api/tables/:tableName/columns', authenticateUser, async (req, res) => {
   const { tableName } = req.params;
   try {
@@ -79,14 +147,43 @@ app.get('/api/tables/:tableName/columns', authenticateUser, async (req, res) => 
   }
 });
 
-// 3. Get all rows for a table dynamically
+/**
+ * @openapi
+ * /api/tables/{tableName}/rows:
+ *   get:
+ *     summary: Get all data rows inside a table
+ *     parameters:
+ *       - in: path
+ *         name: tableName
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Array of rows from the database
+ *   post:
+ *     summary: Insert a new row/record into a table
+ *     parameters:
+ *       - in: path
+ *         name: tableName
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *     responses:
+ *       201:
+ *         description: Row inserted successfully
+ */
 app.get('/api/tables/:tableName/rows', authenticateUser, async (req, res) => {
   const { tableName } = req.params;
   try {
-    // If the table is 'items' and has a created_at field, order it. Otherwise, return unsorted.
     let query = supabase.from(tableName).select('*');
     
-    // We try to fetch columns first to see if created_at exists for sorting
     const { data: columns } = await supabase.rpc('get_columns', { t_name: tableName });
     const hasCreatedAt = columns && columns.some(col => col.column_name === 'created_at');
     
@@ -103,7 +200,6 @@ app.get('/api/tables/:tableName/rows', authenticateUser, async (req, res) => {
   }
 });
 
-// 4. Create a new row dynamically
 app.post('/api/tables/:tableName/rows', authenticateUser, async (req, res) => {
   const { tableName } = req.params;
   try {
@@ -120,7 +216,48 @@ app.post('/api/tables/:tableName/rows', authenticateUser, async (req, res) => {
   }
 });
 
-// 5. Update a row dynamically (assumes ID primary key)
+/**
+ * @openapi
+ * /api/tables/{tableName}/rows/{id}:
+ *   put:
+ *     summary: Update an existing row in a table (assumes 'id' is primary key)
+ *     parameters:
+ *       - in: path
+ *         name: tableName
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *     responses:
+ *       200:
+ *         description: Row updated successfully
+ *   delete:
+ *     summary: Delete a row in a table (assumes 'id' is primary key)
+ *     parameters:
+ *       - in: path
+ *         name: tableName
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Row deleted successfully
+ */
 app.put('/api/tables/:tableName/rows/:id', authenticateUser, async (req, res) => {
   const { tableName, id } = req.params;
   try {
@@ -141,7 +278,6 @@ app.put('/api/tables/:tableName/rows/:id', authenticateUser, async (req, res) =>
   }
 });
 
-// 6. Delete a row dynamically (assumes ID primary key)
 app.delete('/api/tables/:tableName/rows/:id', authenticateUser, async (req, res) => {
   const { tableName, id } = req.params;
   try {
@@ -158,7 +294,24 @@ app.delete('/api/tables/:tableName/rows/:id', authenticateUser, async (req, res)
   }
 });
 
-// 7. Execute raw SQL (requires admin verification - protected by authenticated session)
+/**
+ * @openapi
+ * /api/sql:
+ *   post:
+ *     summary: Run raw SQL queries/DDL commands directly on the database
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               query:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Query executed successfully
+ */
 app.post('/api/sql', authenticateUser, async (req, res) => {
   const { query } = req.body;
   if (!query) {
@@ -181,5 +334,5 @@ app.get('*', (req, res) => {
 
 app.listen(port, () => {
   console.log(`[READY] Dynamic CMS server running on port ${port}`);
-  console.log(`[READY] Access panel at http://localhost:${port}`);
+  console.log(`[READY] Swagger documentation available at http://localhost:${port}/api-docs`);
 });

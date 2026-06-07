@@ -705,6 +705,11 @@
         <div class="sidebar-title">Supabase CMS</div>
         <div id="user-display" class="user-profile">Loading profile...</div>
       </div>
+      <div class="section-label">Navigation</div>
+      <div class="table-item active" id="home-sidebar-tab" onclick="showDashboardHome()">
+        <span>🏠</span>
+        <span>Dashboard Home</span>
+      </div>
       <div class="section-label">Tables Schema</div>
       <div id="tables-list" class="tables-list-container">
         <!-- Dyn list will load here -->
@@ -734,11 +739,67 @@
       </div>
 
       <div class="content-body">
-        <div id="data-view-container" class="table-container">
-          <div class="empty-state">
-            <div class="empty-icon">📁</div>
-            <p>Select a table from the sidebar schema list to view and manage data records.</p>
+        <!-- 1. DASHBOARD HOME VIEW -->
+        <div id="dashboard-home-view" style="display: flex; flex-direction: column; gap: 2rem;">
+          <div style="background: linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(16, 185, 129, 0.05) 100%); border: 1px solid var(--border); padding: 2.5rem; border-radius: 20px; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);">
+            <h2 style="font-size: 2rem; font-weight: 700; margin-bottom: 0.5rem; background: linear-gradient(135deg, #10b981 0%, #6366f1 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+              Welcome to Supabase CMS
+            </h2>
+            <p style="color: var(--text-muted); line-height: 1.6; max-width: 600px;">
+              Manage your PostgreSQL database schema, tables, dynamic fields, rows, and media files directly from this dashboard.
+            </p>
           </div>
+
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1.5rem;">
+            <div class="card" style="padding: 1.5rem; border-radius: 16px; background-color: var(--bg-surface); border:1px solid var(--border);">
+              <div style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700; letter-spacing: 0.05em;">Total Schemas</div>
+              <div id="stat-tables-count" style="font-size: 2.5rem; font-weight: 700; margin-top: 0.5rem; color: var(--primary);">0</div>
+              <div style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.5rem;">Active base tables</div>
+            </div>
+            <div class="card" style="padding: 1.5rem; border-radius: 16px; background-color: var(--bg-surface); border:1px solid var(--border);">
+              <div style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700; letter-spacing: 0.05em;">Storage Bucket</div>
+              <div style="font-size: 1.8rem; font-weight: 700; margin-top: 0.8rem; color: var(--accent);">Connected</div>
+              <div style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.5rem;">Bucket: uploads</div>
+            </div>
+            <div class="card" style="padding: 1.5rem; border-radius: 16px; background-color: var(--bg-surface); border:1px solid var(--border);">
+              <div style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700; letter-spacing: 0.05em;">Database Health</div>
+              <div style="font-size: 1.8rem; font-weight: 700; margin-top: 0.8rem; color: #10b981; display: flex; align-items: center; gap: 0.5rem;">
+                <span style="width: 10px; height: 10px; background-color: #10b981; border-radius: 50%; display: inline-block; box-shadow: 0 0 10px #10b981;"></span> Online
+              </div>
+              <div style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.5rem;">Schema cache refreshed</div>
+            </div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem;">
+            <div class="card" style="padding: 2rem; background-color: var(--bg-surface); border-radius: 16px; border:1px solid var(--border);">
+              <h3 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 1rem;">Quick Actions</h3>
+              <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+                <button type="button" onclick="openTableCreatorModal()" class="btn-accent" style="width: 100%; justify-content: flex-start; padding: 0.8rem 1rem;">
+                  <span>➕</span> Create New Table Schema
+                </button>
+                <button type="button" onclick="window.open('/api-docs', '_blank')" class="btn-secondary" style="width: 100%; justify-content: flex-start; padding: 0.8rem 1rem;">
+                  <span>📖</span> Open Swagger API Interactive Docs
+                </button>
+              </div>
+            </div>
+
+            <div class="card" style="padding: 2rem; background-color: var(--bg-surface); border-radius: 16px; border:1px solid var(--border); display: flex; flex-direction: column; justify-content: space-between;">
+              <div>
+                <h3 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 0.5rem;">API Documentation</h3>
+                <p style="color: var(--text-muted); font-size: 0.95rem; line-height: 1.5; margin-bottom: 1rem;">
+                  Every table you create in the database is automatically exposed as REST endpoints! View full routing details and test queries directly using Swagger.
+                </p>
+              </div>
+              <a href="/api-docs" target="_blank" style="color: var(--primary); text-decoration: none; font-weight: 600; display: inline-flex; align-items: center; gap: 0.25rem; font-size: 0.95rem;">
+                Go to /api-docs ➔
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <!-- 2. DATA TABLE VIEW CONTAINER -->
+        <div id="data-view-container" class="table-container" style="display: none;">
+          <!-- Loaded dynamically -->
         </div>
       </div>
     </main>
@@ -853,7 +914,46 @@
       </form>
     </div>
   </div>
+  <!-- 6. STORAGE TROUBLESHOOTING DIAGNOSTICS MODAL -->
+  <div id="storage-error-modal" class="modal-backdrop">
+    <div class="modal-content" style="max-width: 550px;">
+      <div class="modal-header">
+        <h3 class="modal-title" style="color: var(--danger)">Storage Upload Troubleshooting</h3>
+        <span class="close-btn" onclick="closeStorageErrorModal()">&times;</span>
+      </div>
+      <div class="modal-body" style="font-size: 0.95rem; line-height: 1.6;">
+        <p style="font-weight: 600; margin-bottom: 0.5rem; color:var(--text-main)">Why did my file upload fail?</p>
+        <p style="color: var(--text-muted); margin-bottom: 1rem;">
+          Supabase Storage requires an active public bucket named <strong>uploads</strong> and corresponding security access rules.
+        </p>
+        
+        <p style="font-weight: 600; margin-bottom: 0.5rem; color:var(--text-main)">How to fix it in 1 minute:</p>
+        <ol style="margin-left: 1.25rem; margin-bottom: 1rem; color: var(--text-muted); display:flex; flex-direction:column; gap:0.5rem;">
+          <li>Go to your Supabase Dashboard's <strong>SQL Editor</strong>.</li>
+          <li>Paste and run the following script to create the bucket and enable access rules:
+            <pre style="background-color: #05080f; padding: 0.75rem; border-radius: 6px; font-family: monospace; font-size: 0.8rem; overflow-x: auto; margin-top: 0.5rem; color: #cbd5e1; border: 1px solid var(--border);">
+-- Create uploads bucket
+insert into storage.buckets (id, name, public)
+values ('uploads', 'uploads', true)
+on conflict (id) do nothing;
 
+-- Enable upload policy
+create policy "Public insert objects"
+on storage.objects for insert
+with check (bucket_id = 'uploads');
+
+-- Enable read policy
+create policy "Public read objects"
+on storage.objects for select
+using (bucket_id = 'uploads');</pre>
+          </li>
+        </ol>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-primary" onclick="closeStorageErrorModal()">I Understand</button>
+      </div>
+    </div>
+  </div>
   <!-- Notification Toast -->
   <div id="toast" class="toast">
     <span id="toast-message">Action completed successfully.</span>
@@ -906,6 +1006,9 @@
     // Column Creator modal DOM
     const columnCreatorModal = document.getElementById('column-creator-modal');
     const columnCreatorForm = document.getElementById('column-creator-form');
+
+    // Storage Diagnostics modal DOM
+    const storageErrorModal = document.getElementById('storage-error-modal');
 
     const toast = document.getElementById('toast');
     const toastMsg = document.getElementById('toast-message');
@@ -1008,6 +1111,8 @@
 
       // Load tables list
       fetchTables();
+      // Show Dashboard home screen by default
+      showDashboardHome();
     }
 
     // Log Out
@@ -1050,6 +1155,12 @@
         const rawTables = await response.json();
         availableTables = rawTables.map(t => typeof t === 'object' ? t.table_name : t);
         renderTablesList();
+
+        // If we are on the Home screen, update the table count card
+        if (!activeTable) {
+          const tablesCountEl = document.getElementById('stat-tables-count');
+          if (tablesCountEl) tablesCountEl.innerText = availableTables.length;
+        }
       } catch (error) {
         showToast(error.message, 'error');
         tablesList.innerHTML = '<div style="color:var(--danger); font-size:0.85rem; padding:0.5rem;">Failed to load tables schema list</div>';
@@ -1074,14 +1185,42 @@
       `).join('');
     }
 
+    window.showDashboardHome = function() {
+      activeTable = null;
+      renderTablesList(); // redraw active state sidebar highlight
+      
+      // Highlight "Dashboard Home" in sidebar
+      const homeTab = document.getElementById('home-sidebar-tab');
+      if (homeTab) homeTab.classList.add('active');
+
+      activeTableTitle.innerText = "CMS Dashboard";
+      addRowBtn.style.display = 'none';
+      addColumnBtn.style.display = 'none';
+
+      document.getElementById('dashboard-home-view').style.display = 'flex';
+      document.getElementById('data-view-container').style.display = 'none';
+      
+      // Update stats count
+      const tablesCountEl = document.getElementById('stat-tables-count');
+      if (tablesCountEl) tablesCountEl.innerText = availableTables.length;
+    };
+
     // Select Active Table
     async function selectTable(tableName) {
       activeTable = tableName;
       renderTablesList(); // redraw active state highlight
 
+      // Un-highlight "Dashboard Home" in sidebar
+      const homeTab = document.getElementById('home-sidebar-tab');
+      if (homeTab) homeTab.classList.remove('active');
+
       activeTableTitle.innerText = `Table: ${tableName}`;
       addRowBtn.style.display = 'inline-flex';
       addColumnBtn.style.display = 'inline-flex';
+
+      document.getElementById('dashboard-home-view').style.display = 'none';
+      document.getElementById('data-view-container').style.display = 'block';
+
       dataViewContainer.innerHTML = `
         <div style="text-align: center; padding: 4rem;">
           <div class="spinner"></div>
@@ -1482,12 +1621,14 @@
 
       } catch (err) {
         showToast('Upload failed: ' + err.message, 'error');
-      } finally {
-        // Restore dropzone state
+        
+        // Show Diagnostic Action
         dropzone.innerHTML = `
-          <div class="uploader-icon">📥</div>
-          <p style="font-size:0.9rem;">Drag & drop image/file here, or click to upload</p>
-          <span style="font-size:0.75rem; color:var(--text-muted)">Uploads directly to public storage bucket</span>
+          <div class="uploader-icon" style="color:var(--danger)">⚠️</div>
+          <p style="color:var(--danger); font-size:0.9rem; font-weight:600;">Upload Failed: ${err.message || 'Bucket error'}</p>
+          <button type="button" class="btn-danger btn-icon" style="margin-top:0.5rem; padding:0.3rem 0.6rem; font-size:0.8rem;" onclick="openStorageErrorModal()">
+            Troubleshoot Upload
+          </button>
           <input type="file" id="fileinput-${columnName}" style="display:none;">
         `;
       }
@@ -1825,6 +1966,14 @@
         runSqlBtn.innerText = 'Run SQL Script';
       }
     });
+
+    // Storage Error modal open/close
+    window.openStorageErrorModal = function() {
+      storageErrorModal.style.display = 'flex';
+    };
+    window.closeStorageErrorModal = function() {
+      storageErrorModal.style.display = 'none';
+    };
 
     // --- UI COMMON TOAST HELPER ---
     function showToast(message, type = 'success') {

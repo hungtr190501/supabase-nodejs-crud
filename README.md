@@ -4,10 +4,13 @@ A fully dynamic, dark-mode headless CMS and Database Explorer app built with Nod
 
 ## Features
 - **Supabase Authentication**: Integrated SignUp / Login / LogOut.
+- **Interactive Swagger API Docs**: View and test REST endpoints dynamically at `/api-docs`!
+- **Home Dashboard Screen**: Visually browse database statistics, latency status, database health, and quick links.
 - **Dynamic Tables Selector**: Automatically reads and displays all tables in your database schema.
 - **Dynamic Column Input Generator**: Auto-inspects database columns types (`boolean`, `number`, `text`, `timestamp`) and renders corresponding form fields.
-- **Direct File Storage Upload**: Integrated drag-and-drop zone that uploads images/files to Supabase Storage and fills column values with the public URL.
-- **Interactive SQL Console**: Execute raw SQL DDL queries (like `CREATE TABLE`) directly from the UI.
+- **Direct File Storage Upload**: Integrated drag-and-drop zone that uploads images/files to Supabase Storage.
+- **Storage Diagnostics**: Visual uploader checks if bucket permissions exist, providing step-by-step SQL scripts to resolve bucket policy drops on failure.
+- **GUI Table & Column Editors**: Create new tables and add new columns to active tables visually without typing SQL!
 - **Auto-reconnection Tunnel**: Persistent public internet URL with built-in 5-second automatic reconnects on drops.
 
 ---
@@ -86,12 +89,20 @@ using (bucket_id = 'uploads');
 
 ---
 
-## 2. Deploying on DroidDeploy
+## 2. API Documentation
+
+Once the app is running in DroidDeploy (locally on port `3000` or via global tunnel), navigate to **`/api-docs`** in your browser. 
+- You will see the **Swagger UI** containing full API endpoint details.
+- To execute requests from the Swagger page, click **Authorize** at the top and paste your Supabase session `access_token` (which you can inspect in your browser's Local Storage or retrieve after logging in).
+
+---
+
+## 3. Deploying on DroidDeploy
 
 1. Commit and push the changes to your repository:
    ```bash
    git add .
-   git commit -m "upgrade to dynamic CMS with auth & storage"
+   git commit -m "add swagger api documentation, home dashboard, and storage diagnostics"
    git push
    ```
 2. Open the project detail screen in **DroidDeploy**.
