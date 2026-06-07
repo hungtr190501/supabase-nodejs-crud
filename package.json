@@ -1,0 +1,14 @@
+{
+  "name": "supabase-nodejs-crud",
+  "version": "1.0.0",
+  "description": "A basic NodeJS + Supabase CRUD application deployed via DroidDeploy",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.43.0",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2"
+  }
+}
