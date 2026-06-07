@@ -3,14 +3,17 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Supabase CRUD Manager</title>
+  <title>Supabase Headless CMS & Database Admin</title>
   <!-- Google Fonts: Outfit -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+  <!-- Supabase JS Client CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     :root {
-      --bg-dark: #0f172a;
+      --bg-dark: #090d16;
+      --bg-surface: #131a2c;
       --bg-card: #1e293b;
       --text-main: #f8fafc;
       --text-muted: #94a3b8;
@@ -19,8 +22,11 @@
       --primary-light: rgba(16, 185, 129, 0.1);
       --danger: #ef4444;
       --danger-hover: #dc2626;
-      --accent: #3b82f6;
-      --border: #334155;
+      --accent: #6366f1;
+      --accent-hover: #4f46e5;
+      --border: #1e293b;
+      --glass: rgba(30, 41, 59, 0.4);
+      --glass-border: rgba(255, 255, 255, 0.05);
     }
 
     * {
@@ -36,100 +42,279 @@
       min-height: 100vh;
       display: flex;
       flex-direction: column;
+      overflow-x: hidden;
+    }
+
+    /* Auth Screen styling */
+    .auth-container {
+      flex: 1;
+      display: flex;
+      justify-content: center;
       align-items: center;
       padding: 2rem 1rem;
+      background: radial-gradient(circle at top right, rgba(99, 102, 241, 0.15), transparent 40%),
+                  radial-gradient(circle at bottom left, rgba(16, 185, 129, 0.1), transparent 40%);
     }
 
-    header {
+    .auth-card {
+      background: var(--glass);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid var(--glass-border);
+      border-radius: 24px;
+      padding: 3rem 2.5rem;
       width: 100%;
-      max-width: 800px;
-      text-align: center;
-      margin-bottom: 2.5rem;
+      max-width: 450px;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+      animation: fadeIn 0.5s ease-out;
     }
 
-    h1 {
-      font-size: 2.5rem;
-      font-weight: 700;
-      background: linear-gradient(135deg, #34d399 0%, #3b82f6 100%);
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .auth-header {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+
+    .logo-glow {
+      font-size: 2.2rem;
+      font-weight: 800;
+      background: linear-gradient(135deg, #10b981 0%, #6366f1 100%);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
       margin-bottom: 0.5rem;
     }
 
-    .subtitle {
-      color: var(--text-muted);
-      font-size: 1rem;
+    /* Dashboard Layout */
+    .dashboard-layout {
+      display: none;
+      flex: 1;
+      height: 100vh;
+      overflow: hidden;
     }
 
-    main {
-      width: 100%;
-      max-width: 800px;
+    .sidebar {
+      width: 280px;
+      background-color: var(--bg-surface);
+      border-right: 1px solid var(--border);
       display: flex;
       flex-direction: column;
-      gap: 2rem;
+      height: 100%;
+      flex-shrink: 0;
     }
 
-    .card {
-      background-color: var(--bg-card);
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      padding: 2rem;
-      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -4px rgba(0, 0, 0, 0.3);
+    .sidebar-header {
+      padding: 1.5rem;
+      border-bottom: 1px solid var(--border);
     }
 
-    h2 {
-      font-size: 1.5rem;
-      font-weight: 600;
-      margin-bottom: 1.5rem;
+    .sidebar-title {
+      font-size: 1.25rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, #34d399 0%, #6366f1 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .user-profile {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-top: 0.25rem;
+      word-break: break-all;
+    }
+
+    .tables-list-container {
+      flex: 1;
+      overflow-y: auto;
+      padding: 1rem;
       display: flex;
-      align-items: center;
+      flex-direction: column;
       gap: 0.5rem;
     }
 
-    form {
-      display: flex;
-      flex-direction: column;
-      gap: 1.25rem;
+    .section-label {
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      padding: 0.5rem;
+      margin-top: 0.5rem;
     }
 
+    .table-item {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.75rem 1rem;
+      border-radius: 10px;
+      cursor: pointer;
+      color: var(--text-muted);
+      font-weight: 500;
+      transition: background-color 0.2s, color 0.2s;
+    }
+
+    .table-item:hover, .table-item.active {
+      background-color: rgba(255,255,255,0.03);
+      color: var(--text-main);
+    }
+
+    .table-item.active {
+      background-color: var(--primary-light);
+      color: var(--primary);
+      border-left: 3px solid var(--primary);
+      border-top-left-radius: 0;
+      border-bottom-left-radius: 0;
+    }
+
+    .sidebar-footer {
+      padding: 1rem;
+      border-top: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    /* Main Content Styling */
+    .main-content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      background-color: var(--bg-dark);
+      overflow-y: auto;
+    }
+
+    .content-header {
+      padding: 1.5rem 2rem;
+      background-color: var(--bg-surface);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-shrink: 0;
+    }
+
+    .table-title {
+      font-size: 1.5rem;
+      font-weight: 700;
+    }
+
+    .content-body {
+      padding: 2rem;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+
+    /* Form Fields Styling */
     .form-group {
       display: flex;
       flex-direction: column;
       gap: 0.5rem;
+      margin-bottom: 1.25rem;
     }
 
     label {
-      font-size: 0.9rem;
-      font-weight: 500;
+      font-size: 0.85rem;
+      font-weight: 600;
       color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
     }
 
-    input, textarea {
-      background-color: var(--bg-dark);
+    input, textarea, select {
+      background-color: rgba(15, 23, 42, 0.5);
       border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 0.75rem 1rem;
+      border-radius: 10px;
+      padding: 0.8rem 1rem;
       color: var(--text-main);
       font-family: inherit;
-      font-size: 1rem;
+      font-size: 0.95rem;
       outline: none;
       transition: border-color 0.2s, box-shadow 0.2s;
+      width: 100%;
     }
 
-    input:focus, textarea:focus {
+    input:focus, textarea:focus, select:focus {
       border-color: var(--accent);
-      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
     }
 
+    /* Checkbox / Switch */
+    .toggle-container {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      cursor: pointer;
+      user-select: none;
+      padding: 0.5rem 0;
+    }
+
+    .switch {
+      position: relative;
+      display: inline-block;
+      width: 48px;
+      height: 24px;
+      flex-shrink: 0;
+    }
+
+    .switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: var(--border);
+      transition: .3s;
+      border-radius: 24px;
+    }
+
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 16px;
+      width: 16px;
+      left: 4px;
+      bottom: 4px;
+      background-color: white;
+      transition: .3s;
+      border-radius: 50%;
+    }
+
+    input:checked + .slider {
+      background-color: var(--primary);
+    }
+
+    input:checked + .slider:before {
+      transform: translateX(24px);
+    }
+
+    /* Buttons Styling */
     button {
       font-family: inherit;
-      font-size: 1rem;
+      font-size: 0.95rem;
       font-weight: 600;
       padding: 0.75rem 1.5rem;
       border: none;
-      border-radius: 8px;
+      border-radius: 10px;
       cursor: pointer;
-      transition: background-color 0.2s, transform 0.1s;
+      transition: background-color 0.2s, transform 0.1s, box-shadow 0.2s;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
     }
 
     button:active {
@@ -143,98 +328,262 @@
 
     .btn-primary:hover {
       background-color: var(--primary-hover);
+      box-shadow: 0 0 15px rgba(16, 185, 129, 0.3);
+    }
+
+    .btn-accent {
+      background-color: var(--accent);
+      color: var(--text-main);
+    }
+
+    .btn-accent:hover {
+      background-color: var(--accent-hover);
+      box-shadow: 0 0 15px rgba(99, 102, 241, 0.3);
     }
 
     .btn-secondary {
       background-color: var(--border);
       color: var(--text-main);
-      margin-left: 0.5rem;
+      border: 1px solid rgba(255,255,255,0.05);
     }
 
     .btn-secondary:hover {
-      background-color: #475569;
+      background-color: #273549;
     }
 
     .btn-danger {
-      background-color: transparent;
+      background-color: rgba(239, 68, 68, 0.1);
       color: var(--danger);
       border: 1px solid rgba(239, 68, 68, 0.2);
-      padding: 0.5rem 1rem;
-      font-size: 0.9rem;
     }
 
     .btn-danger:hover {
-      background-color: rgba(239, 68, 68, 0.1);
-      border-color: var(--danger);
+      background-color: var(--danger);
+      color: var(--text-main);
+      box-shadow: 0 0 15px rgba(239, 68, 68, 0.3);
     }
 
-    .btn-edit {
-      background-color: transparent;
-      color: var(--accent);
-      border: 1px solid rgba(59, 130, 246, 0.2);
-      padding: 0.5rem 1rem;
-      font-size: 0.9rem;
-    }
-
-    .btn-edit:hover {
-      background-color: rgba(59, 130, 246, 0.1);
-      border-color: var(--accent);
-    }
-
-    .items-container {
+    /* Data Grid (Table) Styling */
+    .table-container {
+      background-color: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 4px 6px -1px rgba(0,0,0,0.2);
+      flex: 1;
       display: flex;
       flex-direction: column;
-      gap: 1rem;
     }
 
-    .item-card {
-      background-color: rgba(15, 23, 42, 0.4);
+    .table-wrapper {
+      overflow-x: auto;
+      flex: 1;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+      font-size: 0.95rem;
+    }
+
+    th {
+      background-color: rgba(255, 255, 255, 0.02);
+      color: var(--text-muted);
+      font-weight: 600;
+      padding: 1rem 1.5rem;
+      border-bottom: 1px solid var(--border);
+      text-transform: uppercase;
+      font-size: 0.75rem;
+      letter-spacing: 0.05em;
+    }
+
+    td {
+      padding: 1rem 1.5rem;
+      border-bottom: 1px solid var(--border);
+      max-width: 300px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    tr:hover td {
+      background-color: rgba(255, 255, 255, 0.01);
+    }
+
+    .cell-media img {
+      width: 40px;
+      height: 40px;
+      border-radius: 6px;
+      object-fit: cover;
       border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 1.5rem;
+    }
+
+    .cell-media a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+
+    .cell-media a:hover {
+      text-decoration: underline;
+    }
+
+    .actions-column {
+      display: flex;
+      gap: 0.5rem;
+      justify-content: flex-end;
+    }
+
+    .btn-icon {
+      padding: 0.4rem 0.8rem;
+      font-size: 0.85rem;
+      border-radius: 6px;
+    }
+
+    /* Modal dialogs */
+    .modal-backdrop {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: rgba(0, 0, 0, 0.75);
+      backdrop-filter: blur(4px);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+      padding: 1rem;
+    }
+
+    .modal-content {
+      background-color: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      width: 100%;
+      max-width: 650px;
+      max-height: 90vh;
+      overflow-y: auto;
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
+      animation: modalSlideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    @keyframes modalSlideUp {
+      from { transform: translateY(20px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+
+    .modal-header {
+      padding: 1.5rem 2rem;
+      border-bottom: 1px solid var(--border);
       display: flex;
       justify-content: space-between;
-      align-items: flex-start;
-      transition: transform 0.2s, border-color 0.2s;
+      align-items: center;
     }
 
-    .item-card:hover {
-      transform: translateY(-2px);
-      border-color: #475569;
+    .modal-title {
+      font-size: 1.25rem;
+      font-weight: 700;
     }
 
-    .item-details {
-      display: flex;
-      flex-direction: column;
-      gap: 0.5rem;
+    .close-btn {
+      font-size: 1.5rem;
+      cursor: pointer;
+      color: var(--text-muted);
+      transition: color 0.2s;
     }
 
-    .item-name {
-      font-size: 1.2rem;
-      font-weight: 600;
+    .close-btn:hover {
       color: var(--text-main);
     }
 
-    .item-description {
-      font-size: 0.95rem;
-      color: var(--text-muted);
-      line-height: 1.4;
+    .modal-body {
+      padding: 2rem;
     }
 
-    .item-actions {
+    .modal-footer {
+      padding: 1.5rem 2rem;
+      border-top: 1px solid var(--border);
       display: flex;
+      justify-content: flex-end;
+      gap: 0.75rem;
+    }
+
+    /* Drag & Drop File Uploader */
+    .uploader-zone {
+      border: 2px dashed var(--border);
+      border-radius: 12px;
+      padding: 1.5rem;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 0.2s, background-color 0.2s;
+      background-color: rgba(0,0,0,0.1);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
       gap: 0.5rem;
     }
 
-    .empty-state {
-      text-align: center;
-      padding: 3rem 1rem;
+    .uploader-zone:hover, .uploader-zone.dragover {
+      border-color: var(--primary);
+      background-color: rgba(16, 185, 129, 0.03);
+    }
+
+    .uploader-icon {
+      font-size: 2rem;
       color: var(--text-muted);
     }
 
-    .empty-icon {
-      font-size: 2.5rem;
-      margin-bottom: 1rem;
+    .uploader-preview {
+      margin-top: 1rem;
+      position: relative;
+      display: inline-block;
+    }
+
+    .uploader-preview img {
+      max-width: 150px;
+      max-height: 150px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+    }
+
+    .uploader-preview-file {
+      padding: 0.75rem;
+      background-color: rgba(255,255,255,0.03);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 0.85rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    /* Code SQL Console Console styling */
+    .sql-code-area {
+      font-family: 'Fira Code', monospace;
+      font-size: 0.9rem;
+      background-color: #05080f;
+      border-color: #0b0f19;
+      height: 200px;
+      resize: vertical;
+    }
+
+    .sql-log {
+      font-family: 'Fira Code', monospace;
+      font-size: 0.85rem;
+      background-color: #05080f;
+      border: 1px solid #111;
+      padding: 1rem;
+      border-radius: 8px;
+      color: #34d399;
+      margin-top: 1rem;
+      max-height: 150px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+    }
+
+    .sql-log.error {
+      color: #f87171;
     }
 
     /* Toast Notification */
@@ -242,30 +591,25 @@
       position: fixed;
       bottom: 2rem;
       right: 2rem;
-      background-color: var(--bg-card);
+      background-color: var(--bg-surface);
       border: 1px solid var(--border);
       padding: 1rem 1.5rem;
-      border-radius: 8px;
+      border-radius: 10px;
       box-shadow: 0 10px 25px rgba(0,0,0,0.5);
       transform: translateY(150%);
       transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
       display: flex;
       align-items: center;
       gap: 0.75rem;
-      z-index: 1000;
+      z-index: 2000;
     }
 
     .toast.show {
       transform: translateY(0);
     }
 
-    .toast-success {
-      border-left: 4px solid var(--primary);
-    }
-
-    .toast-error {
-      border-left: 4px solid var(--danger);
-    }
+    .toast-success { border-left: 4px solid var(--primary); }
+    .toast-error { border-left: 4px solid var(--danger); }
 
     /* Loading Spinner */
     .spinner {
@@ -276,8 +620,6 @@
       border-left-color: var(--primary);
       animation: spin 1s linear infinite;
       display: inline-block;
-      vertical-align: middle;
-      margin-right: 0.5rem;
     }
 
     @keyframes spin {
@@ -285,57 +627,161 @@
       100% { transform: rotate(360deg); }
     }
 
-    @media (max-width: 600px) {
-      .item-card {
+    .empty-state {
+      text-align: center;
+      padding: 4rem 2rem;
+      color: var(--text-muted);
+    }
+
+    .empty-icon {
+      font-size: 3rem;
+      margin-bottom: 1.25rem;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .dashboard-layout {
         flex-direction: column;
-        gap: 1rem;
       }
-      .item-actions {
+      .sidebar {
         width: 100%;
-        justify-content: flex-end;
+        height: auto;
+        border-right: none;
+        border-bottom: 1px solid var(--border);
+      }
+      .tables-list-container {
+        max-height: 150px;
+        flex-direction: row;
+        overflow-x: auto;
+        padding: 0.75rem;
+      }
+      .table-item {
+        white-space: nowrap;
+      }
+      .sidebar-footer {
+        flex-direction: row;
+        justify-content: space-between;
       }
     }
   </style>
 </head>
 <body>
 
-  <header>
-    <h1>Supabase CRUD Board</h1>
-    <p class="subtitle">A secure NodeJS connection running directly from DroidDeploy</p>
-  </header>
+  <!-- 1. AUTHENTICATION CONTAINER -->
+  <div id="auth-container" class="auth-container">
+    <div class="auth-card">
+      <div class="auth-header">
+        <div class="logo-glow">Supabase CMS</div>
+        <p class="subtitle" id="auth-subtitle">Login to manage your custom database</p>
+      </div>
 
-  <main>
-    <!-- CRUD Form Card -->
-    <div class="card">
-      <h2 id="form-title">Create New Entry</h2>
-      <form id="item-form">
-        <input type="hidden" id="item-id">
+      <form id="auth-form">
         <div class="form-group">
-          <label for="item-name">Name</label>
-          <input type="text" id="item-name" placeholder="E.g., Complete Project Alpha" required>
+          <label for="auth-email">Email</label>
+          <input type="email" id="auth-email" placeholder="you@example.com" required autocomplete="email">
         </div>
         <div class="form-group">
-          <label for="item-description">Description</label>
-          <textarea id="item-description" rows="3" placeholder="Provide details about the item..."></textarea>
+          <label for="auth-password">Password</label>
+          <input type="password" id="auth-password" placeholder="••••••••" required autocomplete="current-password">
         </div>
+        
+        <button type="submit" id="auth-submit-btn" class="btn-accent" style="width: 100%; margin-top: 1rem;">
+          Sign In
+        </button>
+      </form>
+
+      <div style="margin-top: 1.5rem; text-align: center; font-size: 0.9rem;">
+        <span id="auth-toggle-msg" style="color: var(--text-muted);">Don't have an account?</span>
+        <a href="#" id="auth-toggle-btn" style="color: var(--primary); text-decoration: none; font-weight: 600; margin-left: 0.25rem;">Sign Up</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. MAIN DASHBOARD LAYOUT -->
+  <div id="dashboard-layout" class="dashboard-layout">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-title">Supabase CMS</div>
+        <div id="user-display" class="user-profile">Loading profile...</div>
+      </div>
+      <div class="section-label">Tables Schema</div>
+      <div id="tables-list" class="tables-list-container">
+        <!-- Dyn list will load here -->
+      </div>
+      <div class="sidebar-footer">
+        <button id="open-sql-btn" class="btn-secondary">
+          <span>⚙️</span> SQL Console
+        </button>
+        <button id="logout-btn" class="btn-danger">
+          <span>Log Out</span>
+        </button>
+      </div>
+    </aside>
+
+    <!-- Main Working Panel -->
+    <main class="main-content">
+      <div class="content-header">
+        <h2 id="active-table-title" class="table-title">Select a Table</h2>
         <div>
-          <button type="submit" id="submit-btn" class="btn-primary">Add Item</button>
-          <button type="button" id="cancel-btn" class="btn-secondary" style="display: none;">Cancel</button>
+          <button id="add-row-btn" class="btn-primary" style="display: none;">
+            <span>+</span> Add Row
+          </button>
+        </div>
+      </div>
+
+      <div class="content-body">
+        <div id="data-view-container" class="table-container">
+          <div class="empty-state">
+            <div class="empty-icon">📁</div>
+            <p>Select a table from the sidebar schema list to view and manage data records.</p>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- 3. DYNAMIC DATA EDIT MODAL -->
+  <div id="row-modal" class="modal-backdrop">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 id="row-modal-title" class="modal-title">Edit Entry</h3>
+        <span class="close-btn" onclick="closeRowModal()">&times;</span>
+      </div>
+      <form id="row-form">
+        <div class="modal-body" id="row-modal-body">
+          <!-- Inputs will be dynamically generated here -->
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-secondary" onclick="closeRowModal()">Cancel</button>
+          <button type="submit" id="row-submit-btn" class="btn-primary">Save Entry</button>
         </div>
       </form>
     </div>
+  </div>
 
-    <!-- Items Listing Card -->
-    <div class="card">
-      <h2>Database Entries</h2>
-      <div id="items-list" class="items-container">
-        <!-- Loader -->
-        <div style="text-align: center; padding: 2rem;">
-          <div class="spinner"></div> Loading database entries...
+  <!-- 4. SQL CONSOLE MODAL -->
+  <div id="sql-modal" class="modal-backdrop">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 class="modal-title">SQL Executer Console</h3>
+        <span class="close-btn" onclick="closeSqlModal()">&times;</span>
+      </div>
+      <div class="modal-body">
+        <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1rem;">
+          Run raw DDL or DML statements directly on your PostgreSQL database (e.g. create tables, modify schema, drop records).
+        </p>
+        <div class="form-group">
+          <label for="sql-input">SQL query</label>
+          <textarea id="sql-input" class="sql-code-area" placeholder="CREATE TABLE blog_posts (&#10;  id bigint generated by default as identity primary key,&#10;  title text not null,&#10;  image_url text,&#10;  published boolean default false,&#10;  created_at timestamp with time zone default now()&#10;);"></textarea>
         </div>
+        <div style="display: flex; justify-content: flex-end;">
+          <button id="run-sql-btn" class="btn-accent">Run SQL Script</button>
+        </div>
+        <div id="sql-output" class="sql-log" style="display: none;"></div>
       </div>
     </div>
-  </main>
+  </div>
 
   <!-- Notification Toast -->
   <div id="toast" class="toast">
@@ -343,182 +789,753 @@
   </div>
 
   <script>
-    const API_URL = '/api/items';
-    const itemForm = document.getElementById('item-form');
-    const itemIdInput = document.getElementById('item-id');
-    const itemNameInput = document.getElementById('item-name');
-    const itemDescInput = document.getElementById('item-description');
-    const submitBtn = document.getElementById('submit-btn');
-    const cancelBtn = document.getElementById('cancel-btn');
-    const formTitle = document.getElementById('form-title');
-    const itemsList = document.getElementById('items-list');
+    // State management variables
+    let supabaseClient = null;
+    let authSession = null;
+    let isSignupMode = false;
+    let availableTables = [];
+    let activeTable = null;
+    let activeColumns = [];
+    let currentEditRowId = null;
+
+    // DOM Elements
+    const authContainer = document.getElementById('auth-container');
+    const authForm = document.getElementById('auth-form');
+    const authEmail = document.getElementById('auth-email');
+    const authPassword = document.getElementById('auth-password');
+    const authSubmitBtn = document.getElementById('auth-submit-btn');
+    const authSubtitle = document.getElementById('auth-subtitle');
+    const authToggleBtn = document.getElementById('auth-toggle-btn');
+    const authToggleMsg = document.getElementById('auth-toggle-msg');
+
+    const dashboardLayout = document.getElementById('dashboard-layout');
+    const userDisplay = document.getElementById('user-display');
+    const tablesList = document.getElementById('tables-list');
+    const activeTableTitle = document.getElementById('active-table-title');
+    const addRowBtn = document.getElementById('add-row-btn');
+    const dataViewContainer = document.getElementById('data-view-container');
+    const logoutBtn = document.getElementById('logout-btn');
+
+    // Row modal DOM
+    const rowModal = document.getElementById('row-modal');
+    const rowModalTitle = document.getElementById('row-modal-title');
+    const rowModalBody = document.getElementById('row-modal-body');
+    const rowForm = document.getElementById('row-form');
+    const rowSubmitBtn = document.getElementById('row-submit-btn');
+
+    // SQL modal DOM
+    const sqlModal = document.getElementById('sql-modal');
+    const openSqlBtn = document.getElementById('open-sql-btn');
+    const runSqlBtn = document.getElementById('run-sql-btn');
+    const sqlInput = document.getElementById('sql-input');
+    const sqlOutput = document.getElementById('sql-output');
+
     const toast = document.getElementById('toast');
     const toastMsg = document.getElementById('toast-message');
 
-    let isEditing = false;
-
-    // Load items on page load
-    document.addEventListener('DOMContentLoaded', fetchItems);
-
-    // Fetch and render items
-    async function fetchItems() {
+    // On Load: Fetch Supabase connection config from express backend
+    document.addEventListener('DOMContentLoaded', async () => {
       try {
-        const response = await fetch(API_URL);
-        if (!response.ok) {
-          const errData = await response.json();
-          throw new Error(errData.error || 'Failed to fetch items');
+        const res = await fetch('/api/config');
+        if (!res.ok) throw new Error('Failed to retrieve connection settings from backend.');
+        const config = await res.json();
+        
+        if (!config.supabaseUrl || !config.supabaseAnonKey) {
+          throw new Error('Supabase URL/Anon key missing in environment variables. Configure .env file first.');
         }
-        const items = await response.json();
-        renderItems(items);
+
+        // Initialize Supabase Client
+        supabaseClient = supabase.createClient(config.supabaseUrl, config.supabaseAnonKey);
+
+        // Check active session status
+        const { data: { session } } = await supabaseClient.auth.getSession();
+        if (session) {
+          handleAuthSuccess(session);
+        } else {
+          showAuthUI();
+        }
+      } catch (err) {
+        showToast(err.message, 'error');
+        authSubtitle.innerText = 'Configuration Error: ' + err.message;
+        authSubtitle.style.color = 'var(--danger)';
+      }
+    });
+
+    // Toggle Sign In / Sign Up
+    authToggleBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      isSignupMode = !isSignupMode;
+      if (isSignupMode) {
+        authSubtitle.innerText = 'Create a new account on your Supabase client';
+        authSubmitBtn.innerText = 'Sign Up';
+        authToggleMsg.innerText = 'Already have an account?';
+        authToggleBtn.innerText = 'Sign In';
+      } else {
+        authSubtitle.innerText = 'Login to manage your custom database';
+        authSubmitBtn.innerText = 'Sign In';
+        authToggleMsg.innerText = "Don't have an account?";
+        authToggleBtn.innerText = 'Sign Up';
+      }
+    });
+
+    // Auth Submission
+    authForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (!supabaseClient) return;
+
+      const email = authEmail.value.trim();
+      const password = authPassword.value;
+      authSubmitBtn.disabled = true;
+      authSubmitBtn.innerHTML = '<div class="spinner" style="width:16px; height:16px; margin:0;"></div>';
+
+      try {
+        let authResult;
+        if (isSignupMode) {
+          authResult = await supabaseClient.auth.signUp({ email, password });
+        } else {
+          authResult = await supabaseClient.auth.signInWithPassword({ email, password });
+        }
+
+        if (authResult.error) throw authResult.error;
+
+        const session = authResult.data.session;
+        if (isSignupMode && !session) {
+          showToast('Sign up successful! Please check your email inbox for confirmation links.', 'success');
+          isSignupMode = false;
+          authSubtitle.innerText = 'Login to manage your custom database';
+          authSubmitBtn.innerText = 'Sign In';
+          authToggleMsg.innerText = "Don't have an account?";
+          authToggleBtn.innerText = 'Sign Up';
+        } else if (session) {
+          showToast(isSignupMode ? 'Sign up successful!' : 'Logged in successfully!', 'success');
+          handleAuthSuccess(session);
+        }
+      } catch (err) {
+        showToast(err.message, 'error');
+      } finally {
+        authSubmitBtn.disabled = false;
+        authSubmitBtn.innerText = isSignupMode ? 'Sign Up' : 'Sign In';
+      }
+    });
+
+    // Handle Auth success - switch to dashboard
+    function handleAuthSuccess(session) {
+      authSession = session;
+      authContainer.style.display = 'none';
+      dashboardLayout.style.display = 'flex';
+      userDisplay.innerText = session.user.email;
+      
+      // Clear forms
+      authEmail.value = '';
+      authPassword.value = '';
+
+      // Load tables list
+      fetchTables();
+    }
+
+    // Log Out
+    logoutBtn.addEventListener('click', async () => {
+      if (!supabaseClient) return;
+      try {
+        await supabaseClient.auth.signOut();
+        showToast('Logged out successfully', 'success');
+        authSession = null;
+        activeTable = null;
+        showAuthUI();
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
+    });
+
+    function showAuthUI() {
+      dashboardLayout.style.display = 'none';
+      authContainer.style.display = 'flex';
+    }
+
+    // --- CMS DASHBOARD METADATA CLIENT CALLS ---
+
+    // Headers injection helper
+    function getAuthHeaders() {
+      return {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${authSession?.access_token}`
+      };
+    }
+
+    // Fetch dynamic tables list from backend API
+    async function fetchTables() {
+      try {
+        const response = await fetch('/api/tables', { headers: getAuthHeaders() });
+        if (!response.ok) {
+          const err = await response.json();
+          throw new Error(err.error || 'Failed to retrieve tables.');
+        }
+        availableTables = await response.json();
+        renderTablesList();
       } catch (error) {
         showToast(error.message, 'error');
-        itemsList.innerHTML = `<div class="empty-state"><div class="empty-icon">⚠️</div><p>${error.message}</p></div>`;
+        tablesList.innerHTML = '<div style="color:var(--danger); font-size:0.85rem; padding:0.5rem;">Failed to load tables schema list</div>';
       }
     }
 
-    // Render items
-    function renderItems(items) {
-      if (!items || items.length === 0) {
-        itemsList.innerHTML = `
-          <div class="empty-state">
-            <div class="empty-icon">📁</div>
-            <p>No database records found.</p>
-            <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.25rem;">Create a new item above to get started.</p>
+    function renderTablesList() {
+      if (availableTables.length === 0) {
+        tablesList.innerHTML = `
+          <div style="color:var(--text-muted); font-size:0.85rem; padding:0.5rem; text-align:center;">
+            No tables found in public schema. Use the SQL Console to create tables.
           </div>
         `;
         return;
       }
 
-      itemsList.innerHTML = items.map(item => `
-        <div class="item-card" id="item-${item.id}">
-          <div class="item-details">
-            <div class="item-name">${escapeHTML(item.name)}</div>
-            <div class="item-description">${escapeHTML(item.description || 'No description provided.')}</div>
-          </div>
-          <div class="item-actions">
-            <button class="btn-edit" onclick="editItem('${item.id}', '${escapeQuote(item.name)}', '${escapeQuote(item.description || '')}')">Edit</button>
-            <button class="btn-danger" onclick="deleteItem('${item.id}')">Delete</button>
-          </div>
+      tablesList.innerHTML = availableTables.map(tableName => `
+        <div class="table-item ${activeTable === tableName ? 'active' : ''}" onclick="selectTable('${tableName}')">
+          <span>📁</span>
+          <span>${tableName}</span>
         </div>
       `).join('');
     }
 
-    // Form submission (Create & Update)
-    itemForm.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      
-      const name = itemNameInput.value.trim();
-      const description = itemDescInput.value.trim();
-      const id = itemIdInput.value;
+    // Select Active Table
+    async function selectTable(tableName) {
+      activeTable = tableName;
+      renderTablesList(); // redraw active state highlight
 
-      if (!name) return;
-
-      submitBtn.disabled = true;
-      submitBtn.innerHTML = isEditing ? 'Saving...' : 'Adding...';
+      activeTableTitle.innerText = `Table: ${tableName}`;
+      addRowBtn.style.display = 'inline-flex';
+      dataViewContainer.innerHTML = `
+        <div style="text-align: center; padding: 4rem;">
+          <div class="spinner"></div>
+          <p style="margin-top: 1rem; color:var(--text-muted)">Fetching table rows & fields...</p>
+        </div>
+      `;
 
       try {
-        let response;
-        if (isEditing) {
-          response = await fetch(`${API_URL}/${id}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name, description })
-          });
-        } else {
-          response = await fetch(API_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name, description })
-          });
-        }
+        // Fetch columns schema config and rows data in parallel
+        const [columnsRes, rowsRes] = await Promise.all([
+          fetch(`/api/tables/${tableName}/columns`, { headers: getAuthHeaders() }),
+          fetch(`/api/tables/${tableName}/rows`, { headers: getAuthHeaders() })
+        ]);
 
-        if (!response.ok) {
-          const errData = await response.json();
-          throw new Error(errData.error || 'Action failed');
-        }
+        if (!columnsRes.ok) throw new Error('Failed to fetch table columns metadata schema.');
+        if (!rowsRes.ok) throw new Error('Failed to fetch table database records.');
 
-        showToast(isEditing ? 'Item updated successfully!' : 'Item created successfully!', 'success');
-        resetForm();
-        fetchItems();
-      } catch (error) {
-        showToast(error.message, 'error');
-      } finally {
-        submitBtn.disabled = false;
-        submitBtn.innerText = isEditing ? 'Save Changes' : 'Add Item';
+        activeColumns = await columnsRes.json();
+        const rows = await rowsRes.json();
+
+        renderDataGrid(rows);
+      } catch (err) {
+        showToast(err.message, 'error');
+        dataViewContainer.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-icon">⚠️</div>
+            <p>Error retrieving table data: ${err.message}</p>
+          </div>
+        `;
       }
-    });
-
-    // Edit item trigger
-    function editItem(id, name, description) {
-      isEditing = true;
-      itemIdInput.value = id;
-      itemNameInput.value = name;
-      itemDescInput.value = description;
-      formTitle.innerText = 'Edit Entry';
-      submitBtn.innerText = 'Save Changes';
-      cancelBtn.style.display = 'inline-block';
-      itemNameInput.focus();
     }
 
-    // Delete item trigger
-    async function deleteItem(id) {
-      if (!confirm('Are you sure you want to delete this record?')) return;
+    // Render Data Grid dynamically
+    function renderDataGrid(rows) {
+      if (activeColumns.length === 0) {
+        dataViewContainer.innerHTML = `
+          <div class="empty-state">
+            <p>No columns metadata detected for this table.</p>
+          </div>
+        `;
+        return;
+      }
+
+      let html = '<div class="table-wrapper"><table><thead><tr>';
+      
+      // Table headers
+      activeColumns.forEach(col => {
+        html += `<th>${col.column_name}</th>`;
+      });
+      html += '<th style="text-align: right;">Actions</th></tr></thead><tbody>';
+
+      // Table body
+      if (rows.length === 0) {
+        html += `<tr><td colspan="${activeColumns.length + 1}" style="text-align: center; padding: 3rem; color: var(--text-muted);">
+          No rows in this table. Click "+ Add Row" above to write records.
+        </td></tr>`;
+      } else {
+        rows.forEach(row => {
+          html += `<tr>`;
+          activeColumns.forEach(col => {
+            const val = row[col.column_name];
+            let displayVal = val;
+
+            if (val === null || val === undefined) {
+              displayVal = '<span style="color:var(--text-muted); font-style:italic;">NULL</span>';
+            } else if (typeof val === 'boolean') {
+              displayVal = val ? '🟢 TRUE' : '🔴 FALSE';
+            } else if (typeof val === 'object') {
+              displayVal = JSON.stringify(val);
+            } else if (typeof val === 'string' && (val.startsWith('http://') || val.startsWith('https://'))) {
+              if (val.match(/\.(jpeg|jpg|gif|png|webp|svg)/i)) {
+                displayVal = `<span class="cell-media"><img src="${val}" alt="Image" onclick="window.open('${val}', '_blank')"></span>`;
+              } else {
+                displayVal = `<span class="cell-media"><a href="${val}" target="_blank">Link 🔗</a></span>`;
+              }
+            }
+
+            html += `<td>${displayVal}</td>`;
+          });
+
+          // Row actions
+          const escapedRow = encodeURIComponent(JSON.stringify(row));
+          html += `
+            <td>
+              <div class="actions-column">
+                <button class="btn-secondary btn-icon" onclick="openEditRowModal('${escapedRow}')">Edit</button>
+                <button class="btn-danger btn-icon" onclick="deleteRow('${row.id}')">Delete</button>
+              </div>
+            </td>
+          </tr>`;
+        });
+      }
+
+      html += '</tbody></table></div>';
+      dataViewContainer.innerHTML = html;
+    }
+
+    // Delete dynamic table row record
+    async function deleteRow(id) {
+      if (!activeTable) return;
+      if (!confirm(`Are you sure you want to delete this row record (ID: ${id})?`)) return;
 
       try {
-        const response = await fetch(`${API_URL}/${id}`, {
-          method: 'DELETE'
+        const response = await fetch(`/api/tables/${activeTable}/rows/${id}`, {
+          method: 'DELETE',
+          headers: getAuthHeaders()
         });
 
         if (!response.ok) {
-          const errData = await response.json();
-          throw new Error(errData.error || 'Delete failed');
+          const err = await response.json();
+          throw new Error(err.error || 'Failed to delete record.');
         }
 
-        showToast('Item deleted successfully!', 'success');
-        fetchItems();
-      } catch (error) {
-        showToast(error.message, 'error');
+        showToast('Row record deleted successfully', 'success');
+        selectTable(activeTable);
+      } catch (err) {
+        showToast(err.message, 'error');
       }
     }
 
-    // Reset Form state
-    cancelBtn.addEventListener('click', resetForm);
+    // --- DYNAMIC FORM INPUTS GENERATION ---
 
-    function resetForm() {
-      isEditing = false;
-      itemIdInput.value = '';
-      itemNameInput.value = '';
-      itemDescInput.value = '';
-      formTitle.innerText = 'Create New Entry';
-      submitBtn.innerText = 'Add Item';
-      cancelBtn.style.display = 'none';
+    // Open Modal for Add Row
+    addRowBtn.addEventListener('click', () => {
+      currentEditRowId = null;
+      rowModalTitle.innerText = `Add Record to ${activeTable}`;
+      generateDynamicFormFields({});
+      rowModal.style.display = 'flex';
+    });
+
+    // Open Modal for Edit Row
+    function openEditRowModal(escapedRowData) {
+      const rowData = JSON.parse(decodeURIComponent(escapedRowData));
+      currentEditRowId = rowData.id;
+      rowModalTitle.innerText = `Edit Record (ID: ${currentEditRowId}) in ${activeTable}`;
+      generateDynamicFormFields(rowData);
+      rowModal.style.display = 'flex';
     }
 
-    // Show Toast
+    function closeRowModal() {
+      rowModal.style.display = 'none';
+      rowForm.reset();
+      rowModalBody.innerHTML = '';
+    }
+
+    // Scans columns data types to render customized input fields
+    function generateDynamicFormFields(values) {
+      rowModalBody.innerHTML = '';
+
+      activeColumns.forEach(col => {
+        const { column_name, data_type, is_nullable } = col;
+        const val = values[column_name] !== undefined ? values[column_name] : '';
+
+        // Skip rendering system primary key ID and created_at fields for editing/insertion
+        if (column_name === 'id' || column_name === 'created_at') {
+          if (currentEditRowId) {
+            // Read-only info field for existing records
+            rowModalBody.appendChild(createStaticFieldMarkup(column_name, val));
+          }
+          return;
+        }
+
+        const isRequired = is_nullable === 'NO' ? 'required' : '';
+        const inputDiv = document.createElement('div');
+        inputDiv.className = 'form-group';
+
+        const label = document.createElement('label');
+        label.innerText = `${column_name} ${isRequired ? '*' : ''}`;
+        inputDiv.appendChild(label);
+
+        // 1. BOOLEAN TYPE (Toggle slide switch)
+        if (data_type === 'boolean') {
+          const toggleLabel = document.createElement('label');
+          toggleLabel.className = 'toggle-container';
+          
+          const isChecked = val === true ? 'checked' : '';
+          toggleLabel.innerHTML = `
+            <div class="switch">
+              <input type="checkbox" id="field-${column_name}" name="${column_name}" ${isChecked}>
+              <span class="slider"></span>
+            </div>
+            <span style="font-size:0.95rem; text-transform:none; font-weight:normal;" id="text-${column_name}">
+              ${val === true ? 'TRUE' : 'FALSE'}
+            </span>
+          `;
+          
+          inputDiv.appendChild(toggleLabel);
+
+          // Add dynamic listener to switch state text
+          setTimeout(() => {
+            const ck = document.getElementById(`field-${column_name}`);
+            const txt = document.getElementById(`text-${column_name}`);
+            ck.addEventListener('change', () => {
+              txt.innerText = ck.checked ? 'TRUE' : 'FALSE';
+            });
+          }, 0);
+
+        // 2. NUMBER TYPE
+        } else if (['integer', 'numeric', 'real', 'double precision', 'bigint', 'smallint'].includes(data_type)) {
+          const input = document.createElement('input');
+          input.type = 'number';
+          input.step = 'any';
+          input.id = `field-${column_name}`;
+          input.name = column_name;
+          input.value = val;
+          if (isRequired) input.required = true;
+          inputDiv.appendChild(input);
+
+        // 3. DATE / TIMESTAMP TYPE
+        } else if (['timestamp', 'timestamp without time zone', 'timestamp with time zone', 'date'].includes(data_type)) {
+          const input = document.createElement('input');
+          input.type = 'datetime-local';
+          input.id = `field-${column_name}`;
+          input.name = column_name;
+          
+          // Format date value correctly for datetime-local input fields (YYYY-MM-DDThh:mm)
+          if (val) {
+            try {
+              const d = new Date(val);
+              const formattedDate = d.toISOString().slice(0, 16);
+              input.value = formattedDate;
+            } catch (e) {
+              input.value = '';
+            }
+          } else {
+            input.value = '';
+          }
+          if (isRequired) input.required = true;
+          inputDiv.appendChild(input);
+
+        // 4. TEXT TYPE (Checks if it could be a file upload column)
+        } else if (['text', 'character varying', 'varchar'].includes(data_type)) {
+          const lowerName = column_name.toLowerCase();
+          
+          // Render Drag & Drop Uploader if it represents file links
+          if (lowerName.includes('image') || lowerName.includes('file') || lowerName.includes('avatar') || lowerName.includes('logo') || lowerName.includes('url')) {
+            const container = document.createElement('div');
+            container.style.display = 'flex';
+            container.style.flexDirection = 'column';
+            container.style.gap = '0.75rem';
+
+            // Text input displaying URL
+            const textInput = document.createElement('input');
+            textInput.type = 'text';
+            textInput.id = `field-${column_name}`;
+            textInput.name = column_name;
+            textInput.placeholder = 'Paste URL or drag & drop files below';
+            textInput.value = val;
+            if (isRequired) textInput.required = true;
+            container.appendChild(textInput);
+
+            // Drag and drop uploader zone
+            const dropzone = document.createElement('div');
+            dropzone.className = 'uploader-zone';
+            dropzone.id = `dropzone-${column_name}`;
+            dropzone.innerHTML = `
+              <div class="uploader-icon">📥</div>
+              <p style="font-size:0.9rem;">Drag & drop image/file here, or click to upload</p>
+              <span style="font-size:0.75rem; color:var(--text-muted)">Uploads directly to public storage bucket</span>
+              <input type="file" id="fileinput-${column_name}" style="display:none;">
+            `;
+
+            // Hidden file selector trigger
+            dropzone.addEventListener('click', () => {
+              document.getElementById(`fileinput-${column_name}`).click();
+            });
+
+            container.appendChild(dropzone);
+
+            // Preview container
+            const preview = document.createElement('div');
+            preview.className = 'uploader-preview';
+            preview.id = `preview-${column_name}`;
+            if (val) {
+              if (val.match(/\.(jpeg|jpg|gif|png|webp|svg)/i) || val.includes('supabase.co/storage')) {
+                preview.innerHTML = `<img src="${val}" alt="Uploaded image">`;
+              } else {
+                preview.innerHTML = `<div class="uploader-preview-file"><span>📄</span> <span style="word-break:break-all;">${val}</span></div>`;
+              }
+            }
+            container.appendChild(preview);
+            inputDiv.appendChild(container);
+
+            // Setup uploader logic immediately
+            setTimeout(() => {
+              setupFileUploader(column_name, textInput, dropzone, preview);
+            }, 0);
+
+          } else {
+            // General text inputs
+            const input = document.createElement('textarea');
+            input.id = `field-${column_name}`;
+            input.name = column_name;
+            input.rows = 3;
+            input.value = val;
+            if (isRequired) input.required = true;
+            inputDiv.appendChild(input);
+          }
+        } else {
+          // Fallback fields
+          const input = document.createElement('input');
+          input.type = 'text';
+          input.id = `field-${column_name}`;
+          input.name = column_name;
+          input.value = val;
+          if (isRequired) input.required = true;
+          inputDiv.appendChild(input);
+        }
+
+        rowModalBody.appendChild(inputDiv);
+      });
+    }
+
+    function createStaticFieldMarkup(name, value) {
+      const div = document.createElement('div');
+      div.className = 'form-group';
+      div.innerHTML = `
+        <label>${name} (System Generated)</label>
+        <div style="background-color:rgba(0,0,0,0.15); border:1px solid var(--border); padding:0.8rem 1rem; border-radius:10px; color:var(--text-muted); font-size:0.95rem; font-family:'Fira Code', monospace">
+          ${value}
+        </div>
+      `;
+      return div;
+    }
+
+    // Setup direct storage upload
+    function setupFileUploader(columnName, textInput, dropzone, preview) {
+      const fileInput = document.getElementById(`fileinput-${columnName}`);
+
+      // Handle dragover
+      ['dragenter', 'dragover'].forEach(eventName => {
+        dropzone.addEventListener(eventName, (e) => {
+          e.preventDefault();
+          dropzone.classList.add('dragover');
+        }, false);
+      });
+
+      ['dragleave', 'drop'].forEach(eventName => {
+        dropzone.addEventListener(eventName, (e) => {
+          e.preventDefault();
+          dropzone.classList.remove('dragover');
+        }, false);
+      });
+
+      // Handle file drop
+      dropzone.addEventListener('drop', (e) => {
+        const dt = e.dataTransfer;
+        const files = dt.files;
+        if (files.length > 0) {
+          uploadFile(files[0], textInput, dropzone, preview);
+        }
+      });
+
+      // Handle file select click
+      fileInput.addEventListener('change', () => {
+        if (fileInput.files.length > 0) {
+          uploadFile(fileInput.files[0], textInput, dropzone, preview);
+        }
+      });
+    }
+
+    // Performs actual binary upload to Supabase Storage
+    async function uploadFile(file, textInput, dropzone, preview) {
+      if (!supabaseClient) return;
+
+      dropzone.innerHTML = `<div class="spinner"></div><p style="margin-top:0.5rem;">Uploading to Supabase Storage...</p>`;
+      
+      try {
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${Math.random().toString(36).substring(2)}-${Date.now()}.${fileExt}`;
+        const filePath = `uploads/${fileName}`;
+
+        // Upload to bucket 'uploads'
+        const { data, error } = await supabaseClient.storage
+          .from('uploads')
+          .upload(filePath, file, {
+            cacheControl: '3600',
+            upsert: false
+          });
+
+        if (error) throw error;
+
+        // Retrieve public URL
+        const { data: { publicUrl } } = supabaseClient.storage
+          .from('uploads')
+          .getPublicUrl(filePath);
+
+        // Populate fields
+        textInput.value = publicUrl;
+        showToast('File uploaded successfully!', 'success');
+
+        // Draw preview
+        if (file.type.startsWith('image/')) {
+          preview.innerHTML = `<img src="${publicUrl}" alt="Uploaded preview">`;
+        } else {
+          preview.innerHTML = `<div class="uploader-preview-file"><span>📄</span> <span style="word-break:break-all;">${file.name}</span></div>`;
+        }
+
+      } catch (err) {
+        showToast('Upload failed: ' + err.message, 'error');
+      } finally {
+        // Restore dropzone state
+        dropzone.innerHTML = `
+          <div class="uploader-icon">📥</div>
+          <p style="font-size:0.9rem;">Drag & drop image/file here, or click to upload</p>
+          <span style="font-size:0.75rem; color:var(--text-muted)">Uploads directly to public storage bucket</span>
+          <input type="file" id="fileinput-${columnName}" style="display:none;">
+        `;
+      }
+    }
+
+    // Modal submit handler
+    rowForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (!activeTable) return;
+
+      rowSubmitBtn.disabled = true;
+      rowSubmitBtn.innerText = 'Saving...';
+
+      const payload = {};
+      activeColumns.forEach(col => {
+        const { column_name, data_type } = col;
+        
+        // Skip system fields
+        if (column_name === 'id' || column_name === 'created_at') return;
+
+        const input = document.getElementById(`field-${column_name}`);
+        if (!input) return;
+
+        if (data_type === 'boolean') {
+          payload[column_name] = input.checked;
+        } else if (input.type === 'number') {
+          const val = input.value.trim();
+          payload[column_name] = val !== '' ? Number(val) : null;
+        } else if (input.value.trim() === '') {
+          payload[column_name] = null;
+        } else {
+          payload[column_name] = input.value.trim();
+        }
+      });
+
+      try {
+        let res;
+        if (currentEditRowId) {
+          // Update row
+          res = await fetch(`/api/tables/${activeTable}/rows/${currentEditRowId}`, {
+            method: 'PUT',
+            headers: getAuthHeaders(),
+            body: JSON.stringify(payload)
+          });
+        } else {
+          // Create row
+          res = await fetch(`/api/tables/${activeTable}/rows`, {
+            method: 'POST',
+            headers: getAuthHeaders(),
+            body: JSON.stringify(payload)
+          });
+        }
+
+        if (!res.ok) {
+          const err = await res.json();
+          throw new Error(err.error || 'Failed to submit dynamic row.');
+        }
+
+        showToast(currentEditRowId ? 'Row updated successfully!' : 'New row created successfully!', 'success');
+        closeRowModal();
+        selectTable(activeTable);
+      } catch (err) {
+        showToast(err.message, 'error');
+      } finally {
+        rowSubmitBtn.disabled = false;
+        rowSubmitBtn.innerText = 'Save Entry';
+      }
+    });
+
+    // --- SQL EXPLORER MODAL ---
+
+    openSqlBtn.addEventListener('click', () => {
+      sqlInput.value = '';
+      sqlOutput.style.display = 'none';
+      sqlModal.style.display = 'flex';
+    });
+
+    function closeSqlModal() {
+      sqlModal.style.display = 'none';
+    }
+
+    runSqlBtn.addEventListener('click', async () => {
+      const query = sqlInput.value.trim();
+      if (!query) return;
+
+      runSqlBtn.disabled = true;
+      runSqlBtn.innerText = 'Running query...';
+      sqlOutput.style.display = 'none';
+
+      try {
+        const response = await fetch('/api/sql', {
+          method: 'POST',
+          headers: getAuthHeaders(),
+          body: JSON.stringify({ query })
+        });
+
+        const data = await response.json();
+        
+        if (!response.ok) {
+          throw new Error(data.error || 'Query failed to run.');
+        }
+
+        sqlOutput.className = 'sql-log';
+        sqlOutput.innerText = 'Query executed successfully!\n' + (data.result ? JSON.stringify(data.result, null, 2) : '');
+        sqlOutput.style.display = 'block';
+        showToast('SQL script query completed', 'success');
+
+        // Reload tables list in background
+        fetchTables();
+      } catch (err) {
+        sqlOutput.className = 'sql-log error';
+        sqlOutput.innerText = `PostgreSQL Error:\n${err.message}`;
+        sqlOutput.style.display = 'block';
+        showToast('SQL Execution failed', 'error');
+      } finally {
+        runSqlBtn.disabled = false;
+        runSqlBtn.innerText = 'Run SQL Script';
+      }
+    });
+
+    // --- UI COMMON TOAST HELPER ---
     function showToast(message, type = 'success') {
       toastMsg.innerText = message;
       toast.className = `toast show toast-${type}`;
       setTimeout(() => {
         toast.classList.remove('show');
-      }, 3000);
-    }
-
-    // Helper functions for escaping
-    function escapeHTML(str) {
-      return str.replace(/[&<>'"]/g, 
-        tag => ({
-          '&': '&amp;',
-          '<': '&lt;',
-          '>': '&gt;',
-          "'": '&#39;',
-          '"': '&quot;'
-        }[tag] || tag)
-      );
-    }
-
-    // Escape single and double quotes for JS inline argument context
-    function escapeQuote(str) {
-      return str.replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+      }, 4000);
     }
   </script>
 </body>
