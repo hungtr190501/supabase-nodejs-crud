@@ -1,1990 +1,337 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="vi">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Supabase Headless CMS & Database Admin</title>
-  <!-- Google Fonts: Outfit -->
+  <title>Yến Nhi Wedding Studio - Trang Trí Gia Tiên & Rạp Cưới Trọn Gói</title>
+  
+  <!-- SEO Meta Tags -->
+  <meta name="description" content="Yến Nhi Wedding chuyên dịch vụ trang trí gia tiên, rạp cưới, mâm tráp quả rồng phượng, xe hoa cưới và cho thuê xe 16 chỗ tại Việt Nam. Uy tín, tinh xảo, trọn gói.">
+  <meta name="keywords" content="trang trí gia tiên, rạp cưới yến nhi, mâm tráp ăn hỏi rồng phượng, thuê xe hoa, thuê xe 16 chỗ cưới hỏi">
+  
+  <!-- Google Fonts: Playfair Display & Montserrat -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+  
+  <!-- Font Awesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
   <!-- Supabase JS Client CDN -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <style>
-    :root {
-      --bg-dark: #090d16;
-      --bg-surface: #131a2c;
-      --bg-card: #1e293b;
-      --text-main: #f8fafc;
-      --text-muted: #94a3b8;
-      --primary: #10b981;
-      --primary-hover: #059669;
-      --primary-light: rgba(16, 185, 129, 0.1);
-      --danger: #ef4444;
-      --danger-hover: #dc2626;
-      --accent: #6366f1;
-      --accent-hover: #4f46e5;
-      --border: #1e293b;
-      --glass: rgba(30, 41, 59, 0.4);
-      --glass-border: rgba(255, 255, 255, 0.05);
-    }
-
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
-
-    body {
-      font-family: 'Outfit', sans-serif;
-      background-color: var(--bg-dark);
-      color: var(--text-main);
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      overflow-x: hidden;
-    }
-
-    /* Auth Screen styling */
-    .auth-container {
-      flex: 1;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      padding: 2rem 1rem;
-      background: radial-gradient(circle at top right, rgba(99, 102, 241, 0.15), transparent 40%),
-                  radial-gradient(circle at bottom left, rgba(16, 185, 129, 0.1), transparent 40%);
-    }
-
-    .auth-card {
-      background: var(--glass);
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
-      border: 1px solid var(--glass-border);
-      border-radius: 24px;
-      padding: 3rem 2.5rem;
-      width: 100%;
-      max-width: 450px;
-      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-      animation: fadeIn 0.5s ease-out;
-    }
-
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(10px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-
-    .auth-header {
-      text-align: center;
-      margin-bottom: 2rem;
-    }
-
-    .logo-glow {
-      font-size: 2.2rem;
-      font-weight: 800;
-      background: linear-gradient(135deg, #10b981 0%, #6366f1 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      margin-bottom: 0.5rem;
-    }
-
-    /* Dashboard Layout */
-    .dashboard-layout {
-      display: none;
-      flex: 1;
-      height: 100vh;
-      overflow: hidden;
-    }
-
-    .sidebar {
-      width: 280px;
-      background-color: var(--bg-surface);
-      border-right: 1px solid var(--border);
-      display: flex;
-      flex-direction: column;
-      height: 100%;
-      flex-shrink: 0;
-    }
-
-    .sidebar-header {
-      padding: 1.5rem;
-      border-bottom: 1px solid var(--border);
-    }
-
-    .sidebar-title {
-      font-size: 1.25rem;
-      font-weight: 700;
-      background: linear-gradient(135deg, #34d399 0%, #6366f1 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-    }
-
-    .user-profile {
-      font-size: 0.8rem;
-      color: var(--text-muted);
-      margin-top: 0.25rem;
-      word-break: break-all;
-    }
-
-    .tables-list-container {
-      flex: 1;
-      overflow-y: auto;
-      padding: 1rem;
-      display: flex;
-      flex-direction: column;
-      gap: 0.5rem;
-    }
-
-    .section-label {
-      font-size: 0.75rem;
-      font-weight: 700;
-      color: var(--text-muted);
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      padding: 0.5rem;
-      margin-top: 0.5rem;
-    }
-
-    .table-item {
-      display: flex;
-      align-items: center;
-      gap: 0.75rem;
-      padding: 0.75rem 1rem;
-      border-radius: 10px;
-      cursor: pointer;
-      color: var(--text-muted);
-      font-weight: 500;
-      transition: background-color 0.2s, color 0.2s;
-    }
-
-    .table-item:hover, .table-item.active {
-      background-color: rgba(255,255,255,0.03);
-      color: var(--text-main);
-    }
-
-    .table-item.active {
-      background-color: var(--primary-light);
-      color: var(--primary);
-      border-left: 3px solid var(--primary);
-      border-top-left-radius: 0;
-      border-bottom-left-radius: 0;
-    }
-
-    .sidebar-footer {
-      padding: 1rem;
-      border-top: 1px solid var(--border);
-      display: flex;
-      flex-direction: column;
-      gap: 0.75rem;
-    }
-
-    /* Main Content Styling */
-    .main-content {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      height: 100%;
-      background-color: var(--bg-dark);
-      overflow-y: auto;
-    }
-
-    .content-header {
-      padding: 1.5rem 2rem;
-      background-color: var(--bg-surface);
-      border-bottom: 1px solid var(--border);
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      flex-shrink: 0;
-    }
-
-    .table-title {
-      font-size: 1.5rem;
-      font-weight: 700;
-    }
-
-    .content-body {
-      padding: 2rem;
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      gap: 1.5rem;
-    }
-
-    /* Form Fields Styling */
-    .form-group {
-      display: flex;
-      flex-direction: column;
-      gap: 0.5rem;
-      margin-bottom: 1.25rem;
-    }
-
-    label {
-      font-size: 0.85rem;
-      font-weight: 600;
-      color: var(--text-muted);
-      text-transform: uppercase;
-      letter-spacing: 0.03em;
-    }
-
-    input, textarea, select {
-      background-color: rgba(15, 23, 42, 0.5);
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 0.8rem 1rem;
-      color: var(--text-main);
-      font-family: inherit;
-      font-size: 0.95rem;
-      outline: none;
-      transition: border-color 0.2s, box-shadow 0.2s;
-      width: 100%;
-    }
-
-    input:focus, textarea:focus, select:focus {
-      border-color: var(--accent);
-      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
-    }
-
-    /* Checkbox / Switch */
-    .toggle-container {
-      display: flex;
-      align-items: center;
-      gap: 0.75rem;
-      cursor: pointer;
-      user-select: none;
-      padding: 0.5rem 0;
-    }
-
-    .switch {
-      position: relative;
-      display: inline-block;
-      width: 48px;
-      height: 24px;
-      flex-shrink: 0;
-    }
-
-    .switch input {
-      opacity: 0;
-      width: 0;
-      height: 0;
-    }
-
-    .slider {
-      position: absolute;
-      cursor: pointer;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background-color: var(--border);
-      transition: .3s;
-      border-radius: 24px;
-    }
-
-    .slider:before {
-      position: absolute;
-      content: "";
-      height: 16px;
-      width: 16px;
-      left: 4px;
-      bottom: 4px;
-      background-color: white;
-      transition: .3s;
-      border-radius: 50%;
-    }
-
-    input:checked + .slider {
-      background-color: var(--primary);
-    }
-
-    input:checked + .slider:before {
-      transform: translateX(24px);
-    }
-
-    /* Buttons Styling */
-    button {
-      font-family: inherit;
-      font-size: 0.95rem;
-      font-weight: 600;
-      padding: 0.75rem 1.5rem;
-      border: none;
-      border-radius: 10px;
-      cursor: pointer;
-      transition: background-color 0.2s, transform 0.1s, box-shadow 0.2s;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 0.5rem;
-    }
-
-    button:active {
-      transform: scale(0.98);
-    }
-
-    .btn-primary {
-      background-color: var(--primary);
-      color: #0b0f19;
-    }
-
-    .btn-primary:hover {
-      background-color: var(--primary-hover);
-      box-shadow: 0 0 15px rgba(16, 185, 129, 0.3);
-    }
-
-    .btn-accent {
-      background-color: var(--accent);
-      color: var(--text-main);
-    }
-
-    .btn-accent:hover {
-      background-color: var(--accent-hover);
-      box-shadow: 0 0 15px rgba(99, 102, 241, 0.3);
-    }
-
-    .btn-secondary {
-      background-color: var(--border);
-      color: var(--text-main);
-      border: 1px solid rgba(255,255,255,0.05);
-    }
-
-    .btn-secondary:hover {
-      background-color: #273549;
-    }
-
-    .btn-danger {
-      background-color: rgba(239, 68, 68, 0.1);
-      color: var(--danger);
-      border: 1px solid rgba(239, 68, 68, 0.2);
-    }
-
-    .btn-danger:hover {
-      background-color: var(--danger);
-      color: var(--text-main);
-      box-shadow: 0 0 15px rgba(239, 68, 68, 0.3);
-    }
-
-    /* Data Grid (Table) Styling */
-    .table-container {
-      background-color: var(--bg-surface);
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      overflow: hidden;
-      box-shadow: 0 4px 6px -1px rgba(0,0,0,0.2);
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-    }
-
-    .table-wrapper {
-      overflow-x: auto;
-      flex: 1;
-    }
-
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      text-align: left;
-      font-size: 0.95rem;
-    }
-
-    th {
-      background-color: rgba(255, 255, 255, 0.02);
-      color: var(--text-muted);
-      font-weight: 600;
-      padding: 1rem 1.5rem;
-      border-bottom: 1px solid var(--border);
-      text-transform: uppercase;
-      font-size: 0.75rem;
-      letter-spacing: 0.05em;
-    }
-
-    td {
-      padding: 1rem 1.5rem;
-      border-bottom: 1px solid var(--border);
-      max-width: 300px;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    tr:hover td {
-      background-color: rgba(255, 255, 255, 0.01);
-    }
-
-    .cell-media img {
-      width: 40px;
-      height: 40px;
-      border-radius: 6px;
-      object-fit: cover;
-      border: 1px solid var(--border);
-    }
-
-    .cell-media a {
-      color: var(--accent);
-      text-decoration: none;
-    }
-
-    .cell-media a:hover {
-      text-decoration: underline;
-    }
-
-    .actions-column {
-      display: flex;
-      gap: 0.5rem;
-      justify-content: flex-end;
-    }
-
-    .btn-icon {
-      padding: 0.4rem 0.8rem;
-      font-size: 0.85rem;
-      border-radius: 6px;
-    }
-
-    /* Modal dialogs */
-    .modal-backdrop {
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background-color: rgba(0, 0, 0, 0.75);
-      backdrop-filter: blur(4px);
-      display: none;
-      justify-content: center;
-      align-items: center;
-      z-index: 1000;
-      padding: 1rem;
-    }
-
-    .modal-content {
-      background-color: var(--bg-surface);
-      border: 1px solid var(--border);
-      border-radius: 20px;
-      width: 100%;
-      max-width: 650px;
-      max-height: 90vh;
-      overflow-y: auto;
-      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
-      animation: modalSlideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-    }
-
-    @keyframes modalSlideUp {
-      from { transform: translateY(20px); opacity: 0; }
-      to { transform: translateY(0); opacity: 1; }
-    }
-
-    .modal-header {
-      padding: 1.5rem 2rem;
-      border-bottom: 1px solid var(--border);
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-
-    .modal-title {
-      font-size: 1.25rem;
-      font-weight: 700;
-    }
-
-    .close-btn {
-      font-size: 1.5rem;
-      cursor: pointer;
-      color: var(--text-muted);
-      transition: color 0.2s;
-    }
-
-    .close-btn:hover {
-      color: var(--text-main);
-    }
-
-    .modal-body {
-      padding: 2rem;
-    }
-
-    .modal-footer {
-      padding: 1.5rem 2rem;
-      border-top: 1px solid var(--border);
-      display: flex;
-      justify-content: flex-end;
-      gap: 0.75rem;
-    }
-
-    /* Drag & Drop File Uploader */
-    .uploader-zone {
-      border: 2px dashed var(--border);
-      border-radius: 12px;
-      padding: 1.5rem;
-      text-align: center;
-      cursor: pointer;
-      transition: border-color 0.2s, background-color 0.2s;
-      background-color: rgba(0,0,0,0.1);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 0.5rem;
-    }
-
-    .uploader-zone:hover, .uploader-zone.dragover {
-      border-color: var(--primary);
-      background-color: rgba(16, 185, 129, 0.03);
-    }
-
-    .uploader-icon {
-      font-size: 2rem;
-      color: var(--text-muted);
-    }
-
-    .uploader-preview {
-      margin-top: 1rem;
-      position: relative;
-      display: inline-block;
-    }
-
-    .uploader-preview img {
-      max-width: 150px;
-      max-height: 150px;
-      border-radius: 8px;
-      border: 1px solid var(--border);
-    }
-
-    .uploader-preview-file {
-      padding: 0.75rem;
-      background-color: rgba(255,255,255,0.03);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      font-size: 0.85rem;
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-    }
-
-    /* Code SQL Console Console styling */
-    .sql-code-area {
-      font-family: 'Fira Code', monospace;
-      font-size: 0.9rem;
-      background-color: #05080f;
-      border-color: #0b0f19;
-      height: 200px;
-      resize: vertical;
-    }
-
-    .sql-log {
-      font-family: 'Fira Code', monospace;
-      font-size: 0.85rem;
-      background-color: #05080f;
-      border: 1px solid #111;
-      padding: 1rem;
-      border-radius: 8px;
-      color: #34d399;
-      margin-top: 1rem;
-      max-height: 150px;
-      overflow-y: auto;
-      white-space: pre-wrap;
-    }
-
-    .sql-log.error {
-      color: #f87171;
-    }
-
-    /* Toast Notification */
-    .toast {
-      position: fixed;
-      bottom: 2rem;
-      right: 2rem;
-      background-color: var(--bg-surface);
-      border: 1px solid var(--border);
-      padding: 1rem 1.5rem;
-      border-radius: 10px;
-      box-shadow: 0 10px 25px rgba(0,0,0,0.5);
-      transform: translateY(150%);
-      transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-      display: flex;
-      align-items: center;
-      gap: 0.75rem;
-      z-index: 2000;
-    }
-
-    .toast.show {
-      transform: translateY(0);
-    }
-
-    .toast-success { border-left: 4px solid var(--primary); }
-    .toast-error { border-left: 4px solid var(--danger); }
-
-    /* Loading Spinner */
-    .spinner {
-      border: 3px solid rgba(255,255,255,0.1);
-      width: 24px;
-      height: 24px;
-      border-radius: 50%;
-      border-left-color: var(--primary);
-      animation: spin 1s linear infinite;
-      display: inline-block;
-    }
-
-    @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
-    }
-
-    .empty-state {
-      text-align: center;
-      padding: 4rem 2rem;
-      color: var(--text-muted);
-    }
-
-    .empty-icon {
-      font-size: 3rem;
-      margin-bottom: 1.25rem;
-    }
-
-    /* Responsive */
-    @media (max-width: 768px) {
-      .dashboard-layout {
-        flex-direction: column;
-      }
-      .sidebar {
-        width: 100%;
-        height: auto;
-        border-right: none;
-        border-bottom: 1px solid var(--border);
-      }
-      .tables-list-container {
-        max-height: 150px;
-        flex-direction: row;
-        overflow-x: auto;
-        padding: 0.75rem;
-      }
-      .table-item {
-        white-space: nowrap;
-      }
-      .sidebar-footer {
-        flex-direction: row;
-        justify-content: space-between;
-      }
-    }
-  </style>
+  
+  <!-- Custom Styling -->
+  <link rel="stylesheet" href="/style.css">
 </head>
 <body>
 
-  <!-- 1. AUTHENTICATION CONTAINER -->
-  <div id="auth-container" class="auth-container">
-    <div class="auth-card">
-      <div class="auth-header">
-        <div class="logo-glow">Supabase CMS</div>
-        <p class="subtitle" id="auth-subtitle">Login to manage your custom database</p>
+  <!-- ==========================================================
+       1. Top Header & Navigation
+       ========================================================== -->
+  <header class="main-header">
+    <div class="container header-container">
+      <div class="logo">
+        <a href="/" class="logo-text">
+          Yến Nhi <span class="logo-sub">Wedding</span>
+        </a>
       </div>
-
-      <form id="auth-form">
-        <div class="form-group">
-          <label for="auth-email">Email</label>
-          <input type="email" id="auth-email" placeholder="you@example.com" required autocomplete="email">
-        </div>
-        <div class="form-group">
-          <label for="auth-password">Password</label>
-          <input type="password" id="auth-password" placeholder="••••••••" required autocomplete="current-password">
-        </div>
-        
-        <button type="submit" id="auth-submit-btn" class="btn-accent" style="width: 100%; margin-top: 1rem;">
-          Sign In
-        </button>
-      </form>
-
-      <div style="margin-top: 1.5rem; text-align: center; font-size: 0.9rem;">
-        <span id="auth-toggle-msg" style="color: var(--text-muted);">Don't have an account?</span>
-        <a href="#" id="auth-toggle-btn" style="color: var(--primary); text-decoration: none; font-weight: 600; margin-left: 0.25rem;">Sign Up</a>
-      </div>
-    </div>
-  </div>
-
-  <!-- 2. MAIN DASHBOARD LAYOUT -->
-  <div id="dashboard-layout" class="dashboard-layout">
-    <!-- Sidebar -->
-    <aside class="sidebar">
-      <div class="sidebar-header">
-        <div class="sidebar-title">Supabase CMS</div>
-        <div id="user-display" class="user-profile">Loading profile...</div>
-      </div>
-      <div class="section-label">Navigation</div>
-      <div class="table-item active" id="home-sidebar-tab" onclick="showDashboardHome()">
-        <span>🏠</span>
-        <span>Dashboard Home</span>
-      </div>
-      <div class="section-label">Tables Schema</div>
-      <div id="tables-list" class="tables-list-container">
-        <!-- Dyn list will load here -->
-      </div>
-      <div class="sidebar-footer">
-        <button id="open-table-wizard-btn" class="btn-accent" style="width: 100%;">
-          <span>+</span> New Table
-        </button>
-        <button id="logout-btn" class="btn-danger" style="margin-top: 0.5rem; width: 100%;">
-          <span>Log Out</span>
+      
+      <nav class="nav-bar" id="navBar">
+        <a href="#trang-chu" class="nav-link active">Trang Chủ</a>
+        <a href="#dich-vu" class="nav-link">Dịch Vụ</a>
+        <a href="#phong-tuc" class="nav-link">Phong Tục Cưới</a>
+        <a href="#dat-lich" class="nav-link">Đặt Lịch Thuê</a>
+        <a href="#lien-he" class="nav-link">Liên Hệ</a>
+      </nav>
+      
+      <div class="nav-actions">
+        <a href="#dat-lich" class="btn btn-primary btn-sm">Đặt Lịch Ngay</a>
+        <button class="mobile-toggle" id="mobileToggle" aria-label="Toggle Menu">
+          <i class="fa-solid fa-bars"></i>
         </button>
       </div>
-    </aside>
-
-    <!-- Main Working Panel -->
-    <main class="main-content">
-      <div class="content-header">
-        <h2 id="active-table-title" class="table-title">Select a Table</h2>
-        <div style="display: flex; gap: 0.75rem;">
-          <button id="add-column-btn" class="btn-secondary" style="display: none;">
-            <span>+</span> Add Field
-          </button>
-          <button id="add-row-btn" class="btn-primary" style="display: none;">
-            <span>+</span> Add Row
-          </button>
-        </div>
-      </div>
-
-      <div class="content-body">
-        <!-- 1. DASHBOARD HOME VIEW -->
-        <div id="dashboard-home-view" style="display: flex; flex-direction: column; gap: 2rem;">
-          <div style="background: linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(16, 185, 129, 0.05) 100%); border: 1px solid var(--border); padding: 2.5rem; border-radius: 20px; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);">
-            <h2 style="font-size: 2rem; font-weight: 700; margin-bottom: 0.5rem; background: linear-gradient(135deg, #10b981 0%, #6366f1 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
-              Welcome to Supabase CMS
-            </h2>
-            <p style="color: var(--text-muted); line-height: 1.6; max-width: 600px;">
-              Manage your PostgreSQL database schema, tables, dynamic fields, rows, and media files directly from this dashboard.
-            </p>
-          </div>
-
-          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1.5rem;">
-            <div class="card" style="padding: 1.5rem; border-radius: 16px; background-color: var(--bg-surface); border:1px solid var(--border);">
-              <div style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700; letter-spacing: 0.05em;">Total Schemas</div>
-              <div id="stat-tables-count" style="font-size: 2.5rem; font-weight: 700; margin-top: 0.5rem; color: var(--primary);">0</div>
-              <div style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.5rem;">Active base tables</div>
-            </div>
-            <div class="card" style="padding: 1.5rem; border-radius: 16px; background-color: var(--bg-surface); border:1px solid var(--border);">
-              <div style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700; letter-spacing: 0.05em;">Storage Bucket</div>
-              <div style="font-size: 1.8rem; font-weight: 700; margin-top: 0.8rem; color: var(--accent);">Connected</div>
-              <div style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.5rem;">Bucket: uploads</div>
-            </div>
-            <div class="card" style="padding: 1.5rem; border-radius: 16px; background-color: var(--bg-surface); border:1px solid var(--border);">
-              <div style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700; letter-spacing: 0.05em;">Database Health</div>
-              <div style="font-size: 1.8rem; font-weight: 700; margin-top: 0.8rem; color: #10b981; display: flex; align-items: center; gap: 0.5rem;">
-                <span style="width: 10px; height: 10px; background-color: #10b981; border-radius: 50%; display: inline-block; box-shadow: 0 0 10px #10b981;"></span> Online
-              </div>
-              <div style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.5rem;">Schema cache refreshed</div>
-            </div>
-          </div>
-
-          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem;">
-            <div class="card" style="padding: 2rem; background-color: var(--bg-surface); border-radius: 16px; border:1px solid var(--border);">
-              <h3 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 1rem;">Quick Actions</h3>
-              <div style="display: flex; flex-direction: column; gap: 0.75rem;">
-                <button type="button" onclick="openTableCreatorModal()" class="btn-accent" style="width: 100%; justify-content: flex-start; padding: 0.8rem 1rem;">
-                  <span>➕</span> Create New Table Schema
-                </button>
-                <button type="button" onclick="window.open('/api-docs', '_blank')" class="btn-secondary" style="width: 100%; justify-content: flex-start; padding: 0.8rem 1rem;">
-                  <span>📖</span> Open Swagger API Interactive Docs
-                </button>
-              </div>
-            </div>
-
-            <div class="card" style="padding: 2rem; background-color: var(--bg-surface); border-radius: 16px; border:1px solid var(--border); display: flex; flex-direction: column; justify-content: space-between;">
-              <div>
-                <h3 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 0.5rem;">API Documentation</h3>
-                <p style="color: var(--text-muted); font-size: 0.95rem; line-height: 1.5; margin-bottom: 1rem;">
-                  Every table you create in the database is automatically exposed as REST endpoints! View full routing details and test queries directly using Swagger.
-                </p>
-              </div>
-              <a href="/api-docs" target="_blank" style="color: var(--primary); text-decoration: none; font-weight: 600; display: inline-flex; align-items: center; gap: 0.25rem; font-size: 0.95rem;">
-                Go to /api-docs ➔
-              </a>
-            </div>
-          </div>
-        </div>
-
-        <!-- 2. DATA TABLE VIEW CONTAINER -->
-        <div id="data-view-container" class="table-container" style="display: none;">
-          <!-- Loaded dynamically -->
-        </div>
-      </div>
-    </main>
-  </div>
-
-  <!-- 3. DYNAMIC DATA EDIT MODAL -->
-  <div id="row-modal" class="modal-backdrop">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h3 id="row-modal-title" class="modal-title">Edit Entry</h3>
-        <span class="close-btn" onclick="closeRowModal()">&times;</span>
-      </div>
-      <form id="row-form">
-        <div class="modal-body" id="row-modal-body">
-          <!-- Inputs will be dynamically generated here -->
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn-secondary" onclick="closeRowModal()">Cancel</button>
-          <button type="submit" id="row-submit-btn" class="btn-primary">Save Entry</button>
-        </div>
-      </form>
     </div>
-  </div>
+  </header>
 
-  <!-- 4. VISUAL TABLE CREATOR MODAL -->
-  <div id="table-creator-modal" class="modal-backdrop">
-    <div class="modal-content" style="max-width: 700px;">
-      <div class="modal-header">
-        <h3 class="modal-title">Create New Table</h3>
-        <span class="close-btn" onclick="closeTableCreatorModal()">&times;</span>
-      </div>
-      <form id="table-creator-form">
-        <div class="modal-body">
-          <div class="form-group">
-            <label for="new-table-name">Table Name</label>
-            <input type="text" id="new-table-name" placeholder="e.g. blog_posts" required pattern="^[a-zA-Z_][a-zA-Z0-9_]*$">
-            <span style="font-size:0.75rem; color:var(--text-muted)">Must start with a letter and contain only letters, numbers, and underscores.</span>
-          </div>
-
-          <div style="margin-top: 1.5rem; margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center;">
-            <label style="margin-bottom:0;">Columns / Fields Configuration</label>
-            <button type="button" class="btn-secondary btn-icon" id="add-wizard-col-btn" style="padding:0.4rem 0.8rem; font-size:0.85rem;">
-              + Add Field
-            </button>
-          </div>
-
-          <div style="background-color: rgba(255,255,255,0.01); border:1px solid var(--border); padding:1rem; border-radius:12px; margin-bottom: 1rem;">
-            <div style="display: flex; gap: 1rem; margin-bottom: 0.5rem; font-size: 0.8rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">
-              <div style="width: 45%;">Name (System Generated)</div>
-              <div style="width: 35%;">Type</div>
-              <div style="width: 20%;">Options</div>
-            </div>
-            <div style="display: flex; gap: 1rem; margin-bottom: 0.5rem; align-items: center;">
-              <div style="width: 45%; font-family: monospace; font-size: 0.9rem; color: var(--text-muted)">id</div>
-              <div style="width: 35%; font-family: monospace; font-size: 0.9rem; color: var(--text-muted)">bigint (Primary Key)</div>
-              <div style="width: 20%; font-size: 0.85rem; color: var(--text-muted)">Auto-Increment</div>
-            </div>
-            <div style="display: flex; gap: 1rem; align-items: center;">
-              <div style="width: 45%; font-family: monospace; font-size: 0.9rem; color: var(--text-muted)">created_at</div>
-              <div style="width: 35%; font-family: monospace; font-size: 0.9rem; color: var(--text-muted)">timestamp with time zone</div>
-              <div style="width: 20%; font-size: 0.85rem; color: var(--text-muted)">Default: Now</div>
-            </div>
-          </div>
-
-          <div id="wizard-columns-container" style="display: flex; flex-direction: column; gap: 0.75rem; max-height: 250px; overflow-y: auto; padding-right: 0.25rem;">
-            <!-- Column rows will be appended here dynamically -->
-          </div>
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn-secondary" onclick="closeTableCreatorModal()">Cancel</button>
-          <button type="submit" id="table-creator-submit" class="btn-primary">Create Table</button>
-        </div>
-      </form>
-    </div>
-  </div>
-
-  <!-- 5. VISUAL COLUMN CREATOR MODAL -->
-  <div id="column-creator-modal" class="modal-backdrop">
-    <div class="modal-content" style="max-width: 500px;">
-      <div class="modal-header">
-        <h3 class="modal-title" id="column-modal-title">Add New Field</h3>
-        <span class="close-btn" onclick="closeColumnCreatorModal()">&times;</span>
-      </div>
-      <form id="column-creator-form">
-        <div class="modal-body">
-          <div class="form-group">
-            <label for="new-col-name">Field Name</label>
-            <input type="text" id="new-col-name" placeholder="e.g. author_name" required pattern="^[a-zA-Z_][a-zA-Z0-9_]*$">
-          </div>
-          <div class="form-group">
-            <label for="new-col-type">Field Type</label>
-            <select id="new-col-type" required>
-              <option value="text">Text (strings/sentences/URLs)</option>
-              <option value="integer">Number (integers e.g. 42)</option>
-              <option value="numeric">Decimal Number (e.g. 19.99)</option>
-              <option value="boolean">Boolean (true/false toggle)</option>
-              <option value="timestamp with time zone">Date & Time</option>
-            </select>
-          </div>
-          <div class="toggle-container" style="margin-top: 1rem;">
-            <div class="switch">
-              <input type="checkbox" id="new-col-required">
-              <span class="slider"></span>
-            </div>
-            <span style="font-size:0.95rem; text-transform:none; font-weight:normal;">Required field (NOT NULL)</span>
-          </div>
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn-secondary" onclick="closeColumnCreatorModal()">Cancel</button>
-          <button type="submit" id="column-creator-submit" class="btn-primary">Add Field</button>
-        </div>
-      </form>
-    </div>
-  </div>
-  <!-- 6. STORAGE TROUBLESHOOTING DIAGNOSTICS MODAL -->
-  <div id="storage-error-modal" class="modal-backdrop">
-    <div class="modal-content" style="max-width: 550px;">
-      <div class="modal-header">
-        <h3 class="modal-title" style="color: var(--danger)">Storage Upload Troubleshooting</h3>
-        <span class="close-btn" onclick="closeStorageErrorModal()">&times;</span>
-      </div>
-      <div class="modal-body" style="font-size: 0.95rem; line-height: 1.6;">
-        <p style="font-weight: 600; margin-bottom: 0.5rem; color:var(--text-main)">Why did my file upload fail?</p>
-        <p style="color: var(--text-muted); margin-bottom: 1rem;">
-          Supabase Storage requires an active public bucket named <strong>uploads</strong> and corresponding security access rules.
+  <!-- ==========================================================
+       2. Hero Banner Section
+       ========================================================== -->
+  <section class="hero-section" id="trang-chu">
+    <div class="hero-overlay"></div>
+    <div class="container hero-container">
+      <div class="hero-content">
+        <h3 class="hero-subtitle">Mỹ Thuật Cưới Hỏi Truyền Thống</h3>
+        <h1 class="hero-title">Trang Trí Gia Tiên & Rạp Cưới Trọn Gói</h1>
+        <p class="hero-description">
+          Mang đến không gian gia tiên trang trọng ấm cúng, nhà rạp lụa mềm mại cùng mâm quả rồng phượng kết tay tinh xảo. Đồng hành cùng ngày hạnh phúc trăm năm của đôi bạn.
         </p>
-        
-        <p style="font-weight: 600; margin-bottom: 0.5rem; color:var(--text-main)">How to fix it in 1 minute:</p>
-        <ol style="margin-left: 1.25rem; margin-bottom: 1rem; color: var(--text-muted); display:flex; flex-direction:column; gap:0.5rem;">
-          <li>Go to your Supabase Dashboard's <strong>SQL Editor</strong>.</li>
-          <li>Paste and run the following script to create the bucket and enable access rules:
-            <pre style="background-color: #05080f; padding: 0.75rem; border-radius: 6px; font-family: monospace; font-size: 0.8rem; overflow-x: auto; margin-top: 0.5rem; color: #cbd5e1; border: 1px solid var(--border);">
--- Create uploads bucket
-insert into storage.buckets (id, name, public)
-values ('uploads', 'uploads', true)
-on conflict (id) do nothing;
-
--- Enable upload policy
-create policy "Public insert objects"
-on storage.objects for insert
-with check (bucket_id = 'uploads');
-
--- Enable read policy
-create policy "Public read objects"
-on storage.objects for select
-using (bucket_id = 'uploads');</pre>
-          </li>
-        </ol>
-      </div>
-      <div class="modal-footer">
-        <button class="btn-primary" onclick="closeStorageErrorModal()">I Understand</button>
+        <div class="hero-buttons">
+          <a href="#dich-vu" class="btn btn-primary btn-lg">Xem Báo Giá</a>
+          <a href="#phong-tuc" class="btn btn-outline btn-lg">Khám Phá Phong Tục</a>
+        </div>
       </div>
     </div>
-  </div>
-  <!-- Notification Toast -->
-  <div id="toast" class="toast">
-    <span id="toast-message">Action completed successfully.</span>
-  </div>
+  </section>
 
-  <script>
-    // State management variables
-    let supabaseClient = null;
-    let authSession = null;
-    let isSignupMode = false;
-    let availableTables = [];
-    let activeTable = null;
-    let activeColumns = [];
-    let currentEditRowId = null;
-
-    // DOM Elements
-    const authContainer = document.getElementById('auth-container');
-    const authForm = document.getElementById('auth-form');
-    const authEmail = document.getElementById('auth-email');
-    const authPassword = document.getElementById('auth-password');
-    const authSubmitBtn = document.getElementById('auth-submit-btn');
-    const authSubtitle = document.getElementById('auth-subtitle');
-    const authToggleBtn = document.getElementById('auth-toggle-btn');
-    const authToggleMsg = document.getElementById('auth-toggle-msg');
-
-    const dashboardLayout = document.getElementById('dashboard-layout');
-    const userDisplay = document.getElementById('user-display');
-    const tablesList = document.getElementById('tables-list');
-    const activeTableTitle = document.getElementById('active-table-title');
-    const addRowBtn = document.getElementById('add-row-btn');
-    const dataViewContainer = document.getElementById('data-view-container');
-    const logoutBtn = document.getElementById('logout-btn');
-
-    // Row modal DOM
-    const rowModal = document.getElementById('row-modal');
-    const rowModalTitle = document.getElementById('row-modal-title');
-    const rowModalBody = document.getElementById('row-modal-body');
-    const rowForm = document.getElementById('row-form');
-    const rowSubmitBtn = document.getElementById('row-submit-btn');
-
-    const addColumnBtn = document.getElementById('add-column-btn');
-
-    // Table Wizard modal DOM
-    const tableCreatorModal = document.getElementById('table-creator-modal');
-    const openTableWizardBtn = document.getElementById('open-table-wizard-btn');
-    const tableCreatorForm = document.getElementById('table-creator-form');
-    const wizardColumnsContainer = document.getElementById('wizard-columns-container');
-    const addWizardColBtn = document.getElementById('add-wizard-col-btn');
-
-    // Column Creator modal DOM
-    const columnCreatorModal = document.getElementById('column-creator-modal');
-    const columnCreatorForm = document.getElementById('column-creator-form');
-
-    // Storage Diagnostics modal DOM
-    const storageErrorModal = document.getElementById('storage-error-modal');
-
-    const toast = document.getElementById('toast');
-    const toastMsg = document.getElementById('toast-message');
-
-    // On Load: Fetch Supabase connection config from express backend
-    document.addEventListener('DOMContentLoaded', async () => {
-      try {
-        const res = await fetch('/api/config');
-        if (!res.ok) throw new Error('Failed to retrieve connection settings from backend.');
-        const config = await res.json();
+  <!-- ==========================================================
+       3. Quick Features / Custom Values
+       ========================================================== -->
+  <section class="features-section">
+    <div class="container">
+      <div class="grid grid-4">
         
-        if (!config.supabaseUrl || !config.supabaseAnonKey) {
-          throw new Error('Supabase URL/Anon key missing in environment variables. Configure .env file first.');
-        }
-
-        // Initialize Supabase Client
-        supabaseClient = supabase.createClient(config.supabaseUrl, config.supabaseAnonKey);
-
-        // Check active session status
-        const { data: { session } } = await supabaseClient.auth.getSession();
-        if (session) {
-          handleAuthSuccess(session);
-        } else {
-          showAuthUI();
-        }
-      } catch (err) {
-        showToast(err.message, 'error');
-        authSubtitle.innerText = 'Configuration Error: ' + err.message;
-        authSubtitle.style.color = 'var(--danger)';
-      }
-    });
-
-    // Toggle Sign In / Sign Up
-    authToggleBtn.addEventListener('click', (e) => {
-      e.preventDefault();
-      isSignupMode = !isSignupMode;
-      if (isSignupMode) {
-        authSubtitle.innerText = 'Create a new account on your Supabase client';
-        authSubmitBtn.innerText = 'Sign Up';
-        authToggleMsg.innerText = 'Already have an account?';
-        authToggleBtn.innerText = 'Sign In';
-      } else {
-        authSubtitle.innerText = 'Login to manage your custom database';
-        authSubmitBtn.innerText = 'Sign In';
-        authToggleMsg.innerText = "Don't have an account?";
-        authToggleBtn.innerText = 'Sign Up';
-      }
-    });
-
-    // Auth Submission
-    authForm.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      if (!supabaseClient) return;
-
-      const email = authEmail.value.trim();
-      const password = authPassword.value;
-      authSubmitBtn.disabled = true;
-      authSubmitBtn.innerHTML = '<div class="spinner" style="width:16px; height:16px; margin:0;"></div>';
-
-      try {
-        let authResult;
-        if (isSignupMode) {
-          authResult = await supabaseClient.auth.signUp({ email, password });
-        } else {
-          authResult = await supabaseClient.auth.signInWithPassword({ email, password });
-        }
-
-        if (authResult.error) throw authResult.error;
-
-        const session = authResult.data.session;
-        if (isSignupMode && !session) {
-          showToast('Sign up successful! Please check your email inbox for confirmation links.', 'success');
-          isSignupMode = false;
-          authSubtitle.innerText = 'Login to manage your custom database';
-          authSubmitBtn.innerText = 'Sign In';
-          authToggleMsg.innerText = "Don't have an account?";
-          authToggleBtn.innerText = 'Sign Up';
-        } else if (session) {
-          showToast(isSignupMode ? 'Sign up successful!' : 'Logged in successfully!', 'success');
-          handleAuthSuccess(session);
-        }
-      } catch (err) {
-        showToast(err.message, 'error');
-      } finally {
-        authSubmitBtn.disabled = false;
-        authSubmitBtn.innerText = isSignupMode ? 'Sign Up' : 'Sign In';
-      }
-    });
-
-    // Handle Auth success - switch to dashboard
-    function handleAuthSuccess(session) {
-      authSession = session;
-      authContainer.style.display = 'none';
-      dashboardLayout.style.display = 'flex';
-      userDisplay.innerText = session.user.email;
-      
-      // Clear forms
-      authEmail.value = '';
-      authPassword.value = '';
-
-      // Load tables list
-      fetchTables();
-      // Show Dashboard home screen by default
-      showDashboardHome();
-    }
-
-    // Log Out
-    logoutBtn.addEventListener('click', async () => {
-      if (!supabaseClient) return;
-      try {
-        await supabaseClient.auth.signOut();
-        showToast('Logged out successfully', 'success');
-        authSession = null;
-        activeTable = null;
-        showAuthUI();
-      } catch (err) {
-        showToast(err.message, 'error');
-      }
-    });
-
-    function showAuthUI() {
-      dashboardLayout.style.display = 'none';
-      authContainer.style.display = 'flex';
-    }
-
-    // --- CMS DASHBOARD METADATA CLIENT CALLS ---
-
-    // Headers injection helper
-    function getAuthHeaders() {
-      return {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${authSession?.access_token}`
-      };
-    }
-
-    // Fetch dynamic tables list from backend API
-    async function fetchTables() {
-      try {
-        const response = await fetch('/api/tables', { headers: getAuthHeaders() });
-        if (!response.ok) {
-          const err = await response.json();
-          throw new Error(err.error || 'Failed to retrieve tables.');
-        }
-        const rawTables = await response.json();
-        availableTables = rawTables.map(t => typeof t === 'object' ? t.table_name : t);
-        renderTablesList();
-
-        // If we are on the Home screen, update the table count card
-        if (!activeTable) {
-          const tablesCountEl = document.getElementById('stat-tables-count');
-          if (tablesCountEl) tablesCountEl.innerText = availableTables.length;
-        }
-      } catch (error) {
-        showToast(error.message, 'error');
-        tablesList.innerHTML = '<div style="color:var(--danger); font-size:0.85rem; padding:0.5rem;">Failed to load tables schema list</div>';
-      }
-    }
-
-    function renderTablesList() {
-      if (availableTables.length === 0) {
-        tablesList.innerHTML = `
-          <div style="color:var(--text-muted); font-size:0.85rem; padding:0.5rem; text-align:center;">
-            No tables found in public schema. Use the SQL Console to create tables.
+        <div class="feature-card">
+          <div class="feature-icon">
+            <i class="fa-solid fa-hands-praying"></i>
           </div>
-        `;
-        return;
-      }
-
-      tablesList.innerHTML = availableTables.map(tableName => `
-        <div class="table-item ${activeTable === tableName ? 'active' : ''}" onclick="selectTable('${tableName}')">
-          <span>📁</span>
-          <span>${tableName}</span>
+          <h3 class="feature-title">Trang Trí Gia Tiên</h3>
+          <p class="feature-text">Mẫu thờ gia tiên đỏ trắng truyền thống, hoành tráng đầy đủ lư đồng hương hoa quả.</p>
         </div>
-      `).join('');
-    }
-
-    window.showDashboardHome = function() {
-      activeTable = null;
-      renderTablesList(); // redraw active state sidebar highlight
-      
-      // Highlight "Dashboard Home" in sidebar
-      const homeTab = document.getElementById('home-sidebar-tab');
-      if (homeTab) homeTab.classList.add('active');
-
-      activeTableTitle.innerText = "CMS Dashboard";
-      addRowBtn.style.display = 'none';
-      addColumnBtn.style.display = 'none';
-
-      document.getElementById('dashboard-home-view').style.display = 'flex';
-      document.getElementById('data-view-container').style.display = 'none';
-      
-      // Update stats count
-      const tablesCountEl = document.getElementById('stat-tables-count');
-      if (tablesCountEl) tablesCountEl.innerText = availableTables.length;
-    };
-
-    // Select Active Table
-    async function selectTable(tableName) {
-      activeTable = tableName;
-      renderTablesList(); // redraw active state highlight
-
-      // Un-highlight "Dashboard Home" in sidebar
-      const homeTab = document.getElementById('home-sidebar-tab');
-      if (homeTab) homeTab.classList.remove('active');
-
-      activeTableTitle.innerText = `Table: ${tableName}`;
-      addRowBtn.style.display = 'inline-flex';
-      addColumnBtn.style.display = 'inline-flex';
-
-      document.getElementById('dashboard-home-view').style.display = 'none';
-      document.getElementById('data-view-container').style.display = 'block';
-
-      dataViewContainer.innerHTML = `
-        <div style="text-align: center; padding: 4rem;">
-          <div class="spinner"></div>
-          <p style="margin-top: 1rem; color:var(--text-muted)">Fetching table rows & fields...</p>
+        
+        <div class="feature-card">
+          <div class="feature-icon">
+            <i class="fa-solid fa-house-chimney-window"></i>
+          </div>
+          <h3 class="feature-title">Rạp Cưới & Cổng Hoa</h3>
+          <p class="feature-text">Khung rạp Chiffon cao cấp, thả voan lụa bồng bềnh kết hợp cổng hoa thiết kế riêng biệt.</p>
         </div>
-      `;
-
-      try {
-        // Fetch columns schema config and rows data in parallel
-        const [columnsRes, rowsRes] = await Promise.all([
-          fetch(`/api/tables/${tableName}/columns`, { headers: getAuthHeaders() }),
-          fetch(`/api/tables/${tableName}/rows`, { headers: getAuthHeaders() })
-        ]);
-
-        if (!columnsRes.ok) throw new Error('Failed to fetch table columns metadata schema.');
-        if (!rowsRes.ok) throw new Error('Failed to fetch table database records.');
-
-        activeColumns = await columnsRes.json();
-        const rows = await rowsRes.json();
-
-        renderDataGrid(rows);
-      } catch (err) {
-        showToast(err.message, 'error');
-        dataViewContainer.innerHTML = `
-          <div class="empty-state">
-            <div class="empty-icon">⚠️</div>
-            <p>Error retrieving table data: ${err.message}</p>
+        
+        <div class="feature-card">
+          <div class="feature-icon">
+            <i class="fa-solid fa-dragon"></i>
           </div>
-        `;
-      }
-    }
-
-    // Render Data Grid dynamically
-    function renderDataGrid(rows) {
-      if (activeColumns.length === 0) {
-        dataViewContainer.innerHTML = `
-          <div class="empty-state">
-            <p>No columns metadata detected for this table.</p>
+          <h3 class="feature-title">Tráp Rồng Phượng</h3>
+          <p class="feature-text">Mâm ăn hỏi kết đôi rồng phượng tinh xảo chầu trầu cau cưới, biểu tượng phu thê hòa hợp.</p>
+        </div>
+        
+        <div class="feature-card">
+          <div class="feature-icon">
+            <i class="fa-solid fa-car-side"></i>
           </div>
-        `;
-        return;
-      }
+          <h3 class="feature-title">Thuê Xe Hoa & Xe Họ</h3>
+          <p class="feature-text">Dòng xe hoa kết hoa cưới sang trọng đưa đón cô dâu cùng các xe 16 chỗ đưa đón họ hàng chu đáo.</p>
+        </div>
 
-      let html = '<div class="table-wrapper"><table><thead><tr>';
+      </div>
+    </div>
+  </section>
+
+  <!-- ==========================================================
+       4. Services Showcase (Dynamic Catalog)
+       ========================================================== -->
+  <section class="services-section" id="dich-vu">
+    <div class="container">
+      <div class="section-header">
+        <h2 class="section-title">Bảng Giá Các Gói Dịch Vụ</h2>
+        <div class="section-divider"></div>
+        <p class="section-subtitle">
+          Tất cả sản phẩm đều được trang trí tinh xảo bằng thủ công nghệ thuật. Tông màu chủ đạo Đỏ Trắng mang may mắn bình an.
+        </p>
+      </div>
+
+      <!-- Categories Filter Tabs -->
+      <div class="category-tabs" id="categoryTabs">
+        <button class="tab-btn active" data-category="all">Tất cả</button>
+        <!-- Categories populated dynamically -->
+      </div>
+
+      <!-- Services Grid -->
+      <div class="services-grid" id="servicesGrid">
+        <div class="loading-spinner">
+          <i class="fa-solid fa-spinner fa-spin"></i> Đang tải danh sách dịch vụ từ cơ sở dữ liệu...
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==========================================================
+       5. Vietnamese Wedding Custom Detail Section
+       ========================================================== -->
+  <section class="customs-section" id="phong-tuc">
+    <div class="container customs-container">
+      <div class="customs-img">
+        <!-- Showcase representing Tráp Rồng Phượng decoration details -->
+        <div class="customs-decoration-card">
+          <div class="dragon-phoenix-seal">
+            <i class="fa-solid fa-heart"></i>
+            <span>Song Hỷ Lâm Môn</span>
+          </div>
+          <h3 class="customs-card-title">Ý Nghĩa Rồng Phượng & Trầu Cau</h3>
+          <p class="customs-card-text">
+            Trong đám hỏi Việt Nam, trầu cau là sính lễ bắt buộc: <strong>"Miếng trầu là đầu câu chuyện"</strong>. Mâm tráp Rồng Phượng nghệ thuật kết từ lá dứa, cau xanh và trái ớt đỏ biểu trưng cho sức mạnh nam giới (Rồng) và vẻ đẹp dịu hiền nữ giới (Phượng), cầu chúc cặp đôi trăm năm hạnh phúc, phú quý cát tường.
+          </p>
+        </div>
+      </div>
       
-      // Table headers
-      activeColumns.forEach(col => {
-        html += `<th>${col.column_name}</th>`;
-      });
-      html += '<th style="text-align: right;">Actions</th></tr></thead><tbody>';
+      <div class="customs-content">
+        <h2 class="customs-title">Văn Hóa Gia Tiên Trong Ngày Cưới</h2>
+        <div class="section-divider left"></div>
+        <p class="customs-para">
+          Lễ Gia Tiên là nghi thức thiêng liêng nhất trong ngày cưới của người Việt. Đây là thời khắc đôi tân hôn thắp nén hương thơm trước bàn thờ tổ tiên để báo cáo về gia đình mới và cầu xin sự chúc phúc chở che.
+        </p>
+        <p class="customs-para">
+          Màu <strong>Đỏ Nhạt (Hồng đỏ)</strong> biểu trưng cho hỷ sự nồng ấm, may mắn tài lộc, kết hợp với <strong>Trắng tinh khôi</strong> tạo nên vẻ thanh tao trang trọng. Yến Nhi Wedding gìn giữ trọn vẹn nét văn hóa thờ cúng truyền thống qua thiết kế tinh tế: lư hương sáng bóng, cặp nến Song Hỷ chữ vàng chói lọi, bình vạn thọ tươi tắn thắm thiết.
+        </p>
+        <ul class="customs-list">
+          <li><i class="fa-solid fa-circle-check"></i> Đảm bảo đúng chuẩn nghi thức ăn hỏi Bắc - Trung - Nam</li>
+          <li><i class="fa-solid fa-circle-check"></i> Sử dụng 100% nguyên liệu tự nhiên tươi xanh cho cổng hoa dừa, tráp quả</li>
+          <li><i class="fa-solid fa-circle-check"></i> Thiết kế điều chỉnh linh hoạt theo kích thước phòng khách từng gia đình</li>
+        </ul>
+      </div>
+    </div>
+  </section>
 
-      // Table body
-      if (rows.length === 0) {
-        html += `<tr><td colspan="${activeColumns.length + 1}" style="text-align: center; padding: 3rem; color: var(--text-muted);">
-          No rows in this table. Click "+ Add Row" above to write records.
-        </td></tr>`;
-      } else {
-        rows.forEach(row => {
-          html += `<tr>`;
-          activeColumns.forEach(col => {
-            const val = row[col.column_name];
-            let displayVal = val;
-
-            if (col.column_name === 'id' && typeof val === 'string' && val.length > 8) {
-              displayVal = `<span style="font-family: 'Fira Code', monospace; font-size: 0.85rem; color: var(--text-muted); padding: 0.2rem 0.5rem; background: rgba(255,255,255,0.03); border-radius: 4px;" title="${val}">...${val.slice(-8)}</span>`;
-            } else if (val === null || val === undefined) {
-              displayVal = '<span style="color:var(--text-muted); font-style:italic;">NULL</span>';
-            } else if (typeof val === 'boolean') {
-              displayVal = val ? '🟢 TRUE' : '🔴 FALSE';
-            } else if (typeof val === 'object') {
-              displayVal = JSON.stringify(val);
-            } else if (typeof val === 'string' && (val.startsWith('http://') || val.startsWith('https://'))) {
-              if (val.match(/\.(jpeg|jpg|gif|png|webp|svg)/i)) {
-                displayVal = `<span class="cell-media"><img src="${val}" alt="Image" onclick="window.open('${val}', '_blank')"></span>`;
-              } else {
-                displayVal = `<span class="cell-media"><a href="${val}" target="_blank">Link 🔗</a></span>`;
-              }
-            }
-
-            html += `<td>${displayVal}</td>`;
-          });
-
-          // Row actions
-          const escapedRow = encodeURIComponent(JSON.stringify(row));
-          html += `
-            <td>
-              <div class="actions-column">
-                <button class="btn-secondary btn-icon" onclick="openEditRowModal('${escapedRow}')">Edit</button>
-                <button class="btn-danger btn-icon" onclick="deleteRow('${row.id}')">Delete</button>
+  <!-- ==========================================================
+       6. Booking / Inquiry Form Section
+       ========================================================== -->
+  <section class="booking-section" id="dat-lich">
+    <div class="container">
+      <div class="booking-wrapper">
+        
+        <div class="booking-info">
+          <h2 class="booking-info-title">Đăng Ký Đặt Lịch & Tư Vấn</h2>
+          <p class="booking-info-desc">
+            Vui lòng điền thông tin của bạn. Đội ngũ Yến Nhi Wedding sẽ liên hệ ngay qua điện thoại hoặc Zalo trong vòng 15 phút để khảo sát địa hình dựng rạp và tư vấn chi tiết.
+          </p>
+          
+          <div class="booking-contact-details">
+            <div class="contact-item">
+              <div class="contact-icon"><i class="fa-solid fa-phone"></i></div>
+              <div>
+                <h4>Hotline Tư Vấn</h4>
+                <p>0909.123.456 (Zalo)</p>
               </div>
-            </td>
-          </tr>`;
-        });
-      }
-
-      html += '</tbody></table></div>';
-      dataViewContainer.innerHTML = html;
-    }
-
-    // Delete dynamic table row record
-    async function deleteRow(id) {
-      if (!activeTable) return;
-      if (!confirm(`Are you sure you want to delete this row record (ID: ${id})?`)) return;
-
-      try {
-        const response = await fetch(`/api/tables/${activeTable}/rows/${id}`, {
-          method: 'DELETE',
-          headers: getAuthHeaders()
-        });
-
-        if (!response.ok) {
-          const err = await response.json();
-          throw new Error(err.error || 'Failed to delete record.');
-        }
-
-        showToast('Row record deleted successfully', 'success');
-        selectTable(activeTable);
-      } catch (err) {
-        showToast(err.message, 'error');
-      }
-    }
-
-    // --- DYNAMIC FORM INPUTS GENERATION ---
-
-    // Open Modal for Add Row
-    addRowBtn.addEventListener('click', () => {
-      currentEditRowId = null;
-      rowModalTitle.innerText = `Add Record to ${activeTable}`;
-      generateDynamicFormFields({});
-      rowModal.style.display = 'flex';
-    });
-
-    // Open Modal for Edit Row
-    function openEditRowModal(escapedRowData) {
-      const rowData = JSON.parse(decodeURIComponent(escapedRowData));
-      currentEditRowId = rowData.id;
-      rowModalTitle.innerText = `Edit Record (ID: ${currentEditRowId}) in ${activeTable}`;
-      generateDynamicFormFields(rowData);
-      rowModal.style.display = 'flex';
-    }
-
-    function closeRowModal() {
-      rowModal.style.display = 'none';
-      rowForm.reset();
-      rowModalBody.innerHTML = '';
-    }
-
-    // Scans columns data types to render customized input fields
-    function generateDynamicFormFields(values) {
-      rowModalBody.innerHTML = '';
-
-      activeColumns.forEach(col => {
-        const { column_name, data_type, is_nullable } = col;
-        const val = values[column_name] !== undefined ? values[column_name] : '';
-
-        // Skip rendering system primary key ID and created_at fields for editing/insertion
-        if (column_name === 'id' || column_name === 'created_at') {
-          if (currentEditRowId) {
-            // Read-only info field for existing records
-            rowModalBody.appendChild(createStaticFieldMarkup(column_name, val));
-          }
-          return;
-        }
-
-        const isRequired = is_nullable === 'NO' ? 'required' : '';
-        const inputDiv = document.createElement('div');
-        inputDiv.className = 'form-group';
-
-        const label = document.createElement('label');
-        label.innerText = `${column_name} ${isRequired ? '*' : ''}`;
-        inputDiv.appendChild(label);
-
-        // 1. BOOLEAN TYPE (Toggle slide switch)
-        if (data_type === 'boolean') {
-          const toggleLabel = document.createElement('label');
-          toggleLabel.className = 'toggle-container';
-          
-          const isChecked = val === true ? 'checked' : '';
-          toggleLabel.innerHTML = `
-            <div class="switch">
-              <input type="checkbox" id="field-${column_name}" name="${column_name}" ${isChecked}>
-              <span class="slider"></span>
             </div>
-            <span style="font-size:0.95rem; text-transform:none; font-weight:normal;" id="text-${column_name}">
-              ${val === true ? 'TRUE' : 'FALSE'}
-            </span>
-          `;
-          
-          inputDiv.appendChild(toggleLabel);
-
-          // Add dynamic listener to switch state text
-          setTimeout(() => {
-            const ck = document.getElementById(`field-${column_name}`);
-            const txt = document.getElementById(`text-${column_name}`);
-            ck.addEventListener('change', () => {
-              txt.innerText = ck.checked ? 'TRUE' : 'FALSE';
-            });
-          }, 0);
-
-        // 2. NUMBER TYPE
-        } else if (['integer', 'numeric', 'real', 'double precision', 'bigint', 'smallint'].includes(data_type)) {
-          const input = document.createElement('input');
-          input.type = 'number';
-          input.step = 'any';
-          input.id = `field-${column_name}`;
-          input.name = column_name;
-          input.value = val;
-          if (isRequired) input.required = true;
-          inputDiv.appendChild(input);
-
-        // 3. DATE / TIMESTAMP TYPE
-        } else if (['timestamp', 'timestamp without time zone', 'timestamp with time zone', 'date'].includes(data_type)) {
-          const input = document.createElement('input');
-          input.type = 'datetime-local';
-          input.id = `field-${column_name}`;
-          input.name = column_name;
-          
-          // Format date value correctly for datetime-local input fields (YYYY-MM-DDThh:mm)
-          if (val) {
-            try {
-              const d = new Date(val);
-              const formattedDate = d.toISOString().slice(0, 16);
-              input.value = formattedDate;
-            } catch (e) {
-              input.value = '';
-            }
-          } else {
-            input.value = '';
-          }
-          if (isRequired) input.required = true;
-          inputDiv.appendChild(input);
-
-        // 4. TEXT TYPE (Checks if it could be a file upload column)
-        } else if (['text', 'character varying', 'varchar'].includes(data_type)) {
-          const lowerName = column_name.toLowerCase();
-          
-          // Render Drag & Drop Uploader if it represents file links
-          if (lowerName.includes('image') || lowerName.includes('file') || lowerName.includes('avatar') || lowerName.includes('logo') || lowerName.includes('url')) {
-            const container = document.createElement('div');
-            container.style.display = 'flex';
-            container.style.flexDirection = 'column';
-            container.style.gap = '0.75rem';
-
-            // Text input displaying URL
-            const textInput = document.createElement('input');
-            textInput.type = 'text';
-            textInput.id = `field-${column_name}`;
-            textInput.name = column_name;
-            textInput.placeholder = 'Paste URL or drag & drop files below';
-            textInput.value = val;
-            if (isRequired) textInput.required = true;
-            container.appendChild(textInput);
-
-            // Drag and drop uploader zone
-            const dropzone = document.createElement('div');
-            dropzone.className = 'uploader-zone';
-            dropzone.id = `dropzone-${column_name}`;
-            dropzone.innerHTML = `
-              <div class="uploader-icon">📥</div>
-              <p style="font-size:0.9rem;">Drag & drop image/file here, or click to upload</p>
-              <span style="font-size:0.75rem; color:var(--text-muted)">Uploads directly to public storage bucket</span>
-              <input type="file" id="fileinput-${column_name}" style="display:none;">
-            `;
-
-            // Hidden file selector trigger
-            dropzone.addEventListener('click', () => {
-              document.getElementById(`fileinput-${column_name}`).click();
-            });
-
-            container.appendChild(dropzone);
-
-            // Preview container
-            const preview = document.createElement('div');
-            preview.className = 'uploader-preview';
-            preview.id = `preview-${column_name}`;
-            if (val) {
-              if (val.match(/\.(jpeg|jpg|gif|png|webp|svg)/i) || val.includes('supabase.co/storage')) {
-                preview.innerHTML = `<img src="${val}" alt="Uploaded image">`;
-              } else {
-                preview.innerHTML = `<div class="uploader-preview-file"><span>📄</span> <span style="word-break:break-all;">${val}</span></div>`;
-              }
-            }
-            container.appendChild(preview);
-            inputDiv.appendChild(container);
-
-            // Setup uploader logic immediately
-            setTimeout(() => {
-              setupFileUploader(column_name, textInput, dropzone, preview);
-            }, 0);
-
-          } else {
-            // General text inputs
-            const input = document.createElement('textarea');
-            input.id = `field-${column_name}`;
-            input.name = column_name;
-            input.rows = 3;
-            input.value = val;
-            if (isRequired) input.required = true;
-            inputDiv.appendChild(input);
-          }
-        } else {
-          // Fallback fields
-          const input = document.createElement('input');
-          input.type = 'text';
-          input.id = `field-${column_name}`;
-          input.name = column_name;
-          input.value = val;
-          if (isRequired) input.required = true;
-          inputDiv.appendChild(input);
-        }
-
-        rowModalBody.appendChild(inputDiv);
-      });
-    }
-
-    function createStaticFieldMarkup(name, value) {
-      const div = document.createElement('div');
-      div.className = 'form-group';
-      div.innerHTML = `
-        <label>${name} (System Generated)</label>
-        <div style="background-color:rgba(0,0,0,0.15); border:1px solid var(--border); padding:0.8rem 1rem; border-radius:10px; color:var(--text-muted); font-size:0.95rem; font-family:'Fira Code', monospace">
-          ${value}
+            
+            <div class="contact-item">
+              <div class="contact-icon"><i class="fa-solid fa-location-dot"></i></div>
+              <div>
+                <h4>Địa Chỉ Văn Phòng</h4>
+                <p>123 Đường Song Hỷ, Phường Yến Nhi, TP. Hồ Chí Minh</p>
+              </div>
+            </div>
+            
+            <div class="contact-item">
+              <div class="contact-icon"><i class="fa-solid fa-clock"></i></div>
+              <div>
+                <h4>Giờ Làm Việc</h4>
+                <p>07:00 - 21:00 (Tất cả các ngày trong tuần)</p>
+              </div>
+            </div>
+          </div>
         </div>
-      `;
-      return div;
-    }
 
-    // Setup direct storage upload
-    function setupFileUploader(columnName, textInput, dropzone, preview) {
-      const fileInput = document.getElementById(`fileinput-${columnName}`);
+        <div class="booking-form-container">
+          <form id="bookingForm" class="booking-form">
+            <h3 class="form-title">Điền Thông Tin Yêu Cầu</h3>
+            
+            <div class="form-group">
+              <label for="custName"><i class="fa-solid fa-user"></i> Họ và Tên <span class="required">*</span></label>
+              <input type="text" id="custName" placeholder="Ví dụ: Nguyễn Văn A" required>
+            </div>
+            
+            <div class="grid grid-2" style="gap: 1.5rem; margin-bottom: 1.5rem;">
+              <div class="form-group" style="margin-bottom: 0;">
+                <label for="custPhone"><i class="fa-solid fa-phone"></i> Số Điện Thoại <span class="required">*</span></label>
+                <input type="tel" id="custPhone" placeholder="Ví dụ: 0909123456" required>
+              </div>
+              <div class="form-group" style="margin-bottom: 0;">
+                <label for="custEmail"><i class="fa-solid fa-envelope"></i> Email (Nếu có)</label>
+                <input type="email" id="custEmail" placeholder="vd: anhnguyen@gmail.com">
+              </div>
+            </div>
 
-      // Handle dragover
-      ['dragenter', 'dragover'].forEach(eventName => {
-        dropzone.addEventListener(eventName, (e) => {
-          e.preventDefault();
-          dropzone.classList.add('dragover');
-        }, false);
-      });
+            <div class="form-group">
+              <label for="eventDate"><i class="fa-solid fa-calendar-days"></i> Ngày Tổ Chức (Ngày Làm Lễ) <span class="required">*</span></label>
+              <input type="date" id="eventDate" required>
+            </div>
 
-      ['dragleave', 'drop'].forEach(eventName => {
-        dropzone.addEventListener(eventName, (e) => {
-          e.preventDefault();
-          dropzone.classList.remove('dragover');
-        }, false);
-      });
+            <div class="form-group">
+              <label for="eventAddress"><i class="fa-solid fa-house"></i> Địa Chỉ Tổ Chức (Nơi dựng rạp / gia tiên) <span class="required">*</span></label>
+              <input type="text" id="eventAddress" placeholder="Số nhà, Tên đường, Quận/Huyện, Tỉnh thành" required>
+            </div>
 
-      // Handle file drop
-      dropzone.addEventListener('drop', (e) => {
-        const dt = e.dataTransfer;
-        const files = dt.files;
-        if (files.length > 0) {
-          uploadFile(files[0], textInput, dropzone, preview);
-        }
-      });
+            <div class="form-group">
+              <label><i class="fa-solid fa-cart-shopping"></i> Dịch Vụ Đã Chọn</label>
+              <div class="selected-items-box" id="selectedItemsBox">
+                Chưa chọn dịch vụ nào. Hãy click "Thêm vào danh sách" trên các thẻ dịch vụ ở trên!
+              </div>
+            </div>
 
-      // Handle file select click
-      fileInput.addEventListener('change', () => {
-        if (fileInput.files.length > 0) {
-          uploadFile(fileInput.files[0], textInput, dropzone, preview);
-        }
-      });
-    }
+            <div class="form-group">
+              <label for="bookingNotes"><i class="fa-solid fa-pen-clip"></i> Yêu Cầu Chi Tiết Khác (Nếu có)</label>
+              <textarea id="bookingNotes" rows="3" placeholder="Ví dụ: Cổng dừa vẽ thêm chữ Vu Quy, Rạp cần lắp thêm 2 quạt hơi nước công suất lớn..."></textarea>
+            </div>
 
-    // Performs actual binary upload to Supabase Storage
-    async function uploadFile(file, textInput, dropzone, preview) {
-      if (!supabaseClient) return;
-
-      dropzone.innerHTML = `<div class="spinner"></div><p style="margin-top:0.5rem;">Uploading to Supabase Storage...</p>`;
-      
-      try {
-        const fileExt = file.name.split('.').pop();
-        const fileName = `${Math.random().toString(36).substring(2)}-${Date.now()}.${fileExt}`;
-        const filePath = `uploads/${fileName}`;
-
-        // Upload to bucket 'uploads'
-        const { data, error } = await supabaseClient.storage
-          .from('uploads')
-          .upload(filePath, file, {
-            cacheControl: '3600',
-            upsert: false
-          });
-
-        if (error) throw error;
-
-        // Retrieve public URL
-        const { data: { publicUrl } } = supabaseClient.storage
-          .from('uploads')
-          .getPublicUrl(filePath);
-
-        // Populate fields
-        textInput.value = publicUrl;
-        showToast('File uploaded successfully!', 'success');
-
-        // Draw preview
-        if (file.type.startsWith('image/')) {
-          preview.innerHTML = `<img src="${publicUrl}" alt="Uploaded preview">`;
-        } else {
-          preview.innerHTML = `<div class="uploader-preview-file"><span>📄</span> <span style="word-break:break-all;">${file.name}</span></div>`;
-        }
-
-      } catch (err) {
-        showToast('Upload failed: ' + err.message, 'error');
-        
-        // Show Diagnostic Action
-        dropzone.innerHTML = `
-          <div class="uploader-icon" style="color:var(--danger)">⚠️</div>
-          <p style="color:var(--danger); font-size:0.9rem; font-weight:600;">Upload Failed: ${err.message || 'Bucket error'}</p>
-          <button type="button" class="btn-danger btn-icon" style="margin-top:0.5rem; padding:0.3rem 0.6rem; font-size:0.8rem;" onclick="openStorageErrorModal()">
-            Troubleshoot Upload
-          </button>
-          <input type="file" id="fileinput-${columnName}" style="display:none;">
-        `;
-      }
-    }
-
-    // Modal submit handler
-    rowForm.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      if (!activeTable) return;
-
-      rowSubmitBtn.disabled = true;
-      rowSubmitBtn.innerText = 'Saving...';
-
-      const payload = {};
-      activeColumns.forEach(col => {
-        const { column_name, data_type } = col;
-        
-        // Skip system fields
-        if (column_name === 'id' || column_name === 'created_at') return;
-
-        const input = document.getElementById(`field-${column_name}`);
-        if (!input) return;
-
-        if (data_type === 'boolean') {
-          payload[column_name] = input.checked;
-        } else if (input.type === 'number') {
-          const val = input.value.trim();
-          payload[column_name] = val !== '' ? Number(val) : null;
-        } else if (input.value.trim() === '') {
-          payload[column_name] = null;
-        } else {
-          payload[column_name] = input.value.trim();
-        }
-      });
-
-      try {
-        let res;
-        if (currentEditRowId) {
-          // Update row
-          res = await fetch(`/api/tables/${activeTable}/rows/${currentEditRowId}`, {
-            method: 'PUT',
-            headers: getAuthHeaders(),
-            body: JSON.stringify(payload)
-          });
-        } else {
-          // Create row
-          res = await fetch(`/api/tables/${activeTable}/rows`, {
-            method: 'POST',
-            headers: getAuthHeaders(),
-            body: JSON.stringify(payload)
-          });
-        }
-
-        if (!res.ok) {
-          const err = await res.json();
-          throw new Error(err.error || 'Failed to submit dynamic row.');
-        }
-
-        showToast(currentEditRowId ? 'Row updated successfully!' : 'New row created successfully!', 'success');
-        closeRowModal();
-            selectTable(activeTable);
-      } catch (err) {
-        showToast(err.message, 'error');
-      } finally {
-        rowSubmitBtn.disabled = false;
-        rowSubmitBtn.innerText = 'Save Entry';
-      }
-    });
-
-    // --- TABLE CREATOR WIZARD ---
-
-    // Open/Close modal
-    openTableWizardBtn.addEventListener('click', () => {
-      document.getElementById('new-table-name').value = '';
-      wizardColumnsContainer.innerHTML = '';
-      // Add one default column to start
-      addWizardColumnRow();
-      tableCreatorModal.style.display = 'flex';
-    });
-
-    window.closeTableCreatorModal = function() {
-      tableCreatorModal.style.display = 'none';
-    }
-
-    // Append column row in wizard
-    addWizardColBtn.addEventListener('click', () => {
-      addWizardColumnRow();
-    });
-
-    let wizardColIndex = 0;
-    function addWizardColumnRow() {
-      wizardColIndex++;
-      const row = document.createElement('div');
-      row.className = 'wizard-column-row';
-      row.style.display = 'flex';
-      row.style.gap = '1rem';
-      row.style.alignItems = 'center';
-      row.id = `wizard-col-row-${wizardColIndex}`;
-      
-      row.innerHTML = `
-        <div style="width: 45%;">
-          <input type="text" placeholder="column_name" required pattern="^[a-zA-Z_][a-zA-Z0-9_]*$" class="wizard-col-name" style="padding:0.5rem 0.75rem; font-size:0.9rem;">
+            <button type="submit" class="btn btn-primary btn-block btn-lg" id="submitBtn">
+              <i class="fa-solid fa-paper-plane"></i> Gửi Yêu Cầu Ngay
+            </button>
+            
+            <div id="formStatus" class="form-status"></div>
+          </form>
         </div>
-        <div style="width: 35%;">
-          <select class="wizard-col-type" style="padding:0.5rem 0.75rem; font-size:0.9rem;">
-            <option value="text">Text (string)</option>
-            <option value="integer">Number (integer)</option>
-            <option value="numeric">Decimal Number</option>
-            <option value="boolean">Boolean</option>
-            <option value="timestamp with time zone">Date & Time</option>
-          </select>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ==========================================================
+       7. Elegant Footer
+       ========================================================== -->
+  <footer class="main-footer" id="lien-he">
+    <div class="container footer-grid">
+      <div class="footer-col brand-col">
+        <h3 class="footer-logo">Yến Nhi <span class="logo-sub">Wedding</span></h3>
+        <p class="footer-desc">
+          Thương hiệu trang trí cưới hỏi trọn gói hàng đầu. Tận tâm - Uy tín - Tinh xảo trong từng khâu thiết kế phông màn gia tiên, cổng hoa cưới hỏi.
+        </p>
+        <div class="social-links">
+          <a href="#" aria-label="Facebook"><i class="fa-brands fa-facebook-f"></i></a>
+          <a href="#" aria-label="Instagram"><i class="fa-brands fa-instagram"></i></a>
+          <a href="#" aria-label="Youtube"><i class="fa-brands fa-youtube"></i></a>
+          <a href="#" aria-label="Tiktok"><i class="fa-brands fa-tiktok"></i></a>
         </div>
-        <div style="width: 20%; display: flex; align-items: center; gap: 0.5rem; justify-content: space-between;">
-          <label class="toggle-container" style="padding:0; gap:0.25rem;">
-            <input type="checkbox" class="wizard-col-required" style="width:auto; margin:0;">
-            <span style="font-size:0.75rem; text-transform:none;">Req</span>
-          </label>
-          <button type="button" class="btn-danger btn-icon" style="padding:0.25rem 0.5rem; font-size:0.8rem; border-radius:6px;" onclick="removeWizardColumnRow(${wizardColIndex})">
-            &times;
-          </button>
-        </div>
-      `;
-      wizardColumnsContainer.appendChild(row);
-      wizardColumnsContainer.scrollTop = wizardColumnsContainer.scrollHeight;
-    }
-
-    window.removeWizardColumnRow = function(index) {
-      const row = document.getElementById(`wizard-col-row-${index}`);
-      if (row) {
-        row.remove();
-      }
-    };
-
-    // Table Creator Form Submit
-    tableCreatorForm.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const tableName = document.getElementById('new-table-name').value.trim().toLowerCase();
-      if (!tableName) return;
-
-      const colNames = Array.from(document.querySelectorAll('.wizard-col-name')).map(input => input.value.trim().toLowerCase());
-      const colTypes = Array.from(document.querySelectorAll('.wizard-col-type')).map(select => select.value);
-      const colReqs = Array.from(document.querySelectorAll('.wizard-col-required')).map(check => check.checked);
-
-      // Validation
-      if (colNames.length === 0) {
-        showToast('Please add at least one column field.', 'error');
-        return;
-      }
+      </div>
       
-      const duplicateNames = colNames.filter((item, index) => colNames.indexOf(item) !== index);
-      if (duplicateNames.length > 0 || colNames.includes('id') || colNames.includes('created_at')) {
-        showToast('Duplicate field names or protected names (id, created_at) are not allowed.', 'error');
-        return;
-      }
+      <div class="footer-col">
+        <h4 class="footer-title">Dịch Vụ Cung Cấp</h4>
+        <ul class="footer-links">
+          <li><a href="#dich-vu">Trang Trí Gia Tiên</a></li>
+          <li><a href="#dich-vu">Cho Thuê Rạp Cưới</a></li>
+          <li><a href="#dich-vu">Cổng Hoa Ngày Cưới</a></li>
+          <li><a href="#dich-vu">Mâm Tráp Rồng Phượng</a></li>
+          <li><a href="#dich-vu">Xe Hoa & Xe 16 Chỗ</a></li>
+        </ul>
+      </div>
 
-      // Build SQL CREATE TABLE query
-      let columnsSql = '';
-      for (let i = 0; i < colNames.length; i++) {
-        const nullability = colReqs[i] ? 'NOT NULL' : 'NULL';
-        columnsSql += `, "${colNames[i]}" ${colTypes[i]} ${nullability}`;
-      }
+      <div class="footer-col">
+        <h4 class="footer-title">Hỗ Trợ & Chính Sách</h4>
+        <ul class="footer-links">
+          <li><a href="#lien-he">Liên Hệ Tư Vấn</a></li>
+          <li><a href="#dat-lich">Đăng Ký Đặt Lịch</a></li>
+          <li><a href="#phong-tuc">Phong Tục Nghi Lễ</a></li>
+          <li><a href="#">Bảo Mật Thông Tin</a></li>
+          <li><a href="#">Quy Trình Hoàn Tiền</a></li>
+        </ul>
+      </div>
 
-      const sqlQuery = `
-        CREATE TABLE public."${tableName}" (
-          id bigint generated by default as identity primary key,
-          created_at timestamp with time zone default now() not null
-          ${columnsSql}
-        );
+      <div class="footer-col contact-col">
+        <h4 class="footer-title">Thông Tin Liên Hệ</h4>
+        <p><i class="fa-solid fa-phone"></i> 0909.123.456 (Zalo)</p>
+        <p><i class="fa-solid fa-envelope"></i> yennhiwedding@gmail.com</p>
+        <p><i class="fa-solid fa-location-dot"></i> 123 Đường Song Hỷ, Phường Yến Nhi, TP. Hồ Chí Minh</p>
+      </div>
+    </div>
+    
+    <div class="footer-bottom">
+      <div class="container bottom-container">
+        <p>&copy; 2026 Yến Nhi Wedding Studio. Thiết kế và phát triển trọn gói với màu đỏ may mắn.</p>
+        <a href="#trang-chu" class="scroll-top-btn"><i class="fa-solid fa-arrow-up"></i></a>
+      </div>
+    </div>
+  </footer>
 
-        -- Enable Row Level Security (RLS)
-        ALTER TABLE public."${tableName}" ENABLE ROW LEVEL SECURITY;
-
-        -- Create public policy
-        CREATE POLICY "Allow public access" ON public."${tableName}" FOR ALL USING (true) WITH CHECK (true);
-      `;
-
-      const submitBtn = document.getElementById('table-creator-submit');
-      submitBtn.disabled = true;
-      submitBtn.innerText = 'Creating table...';
-
-      try {
-        const response = await fetch('/api/sql', {
-          method: 'POST',
-          headers: getAuthHeaders(),
-          body: JSON.stringify({ query: sqlQuery })
-        });
-        
-        const data = await response.json();
-        if (!response.ok) {
-          throw new Error(data.error || 'Failed to create table.');
-        }
-
-        showToast(`Table "${tableName}" created successfully!`, 'success');
-        closeTableCreatorModal();
-        
-        // Refresh tables list and select the new table
-        await fetchTables();
-        selectTable(tableName);
-      } catch (err) {
-        showToast(err.message, 'error');
-      } finally {
-        submitBtn.disabled = false;
-        submitBtn.innerText = 'Create Table';
-      }
-    });
-
-    // --- COLUMN / FIELD CREATOR WIZARD ---
-
-    // Open/Close modal
-    addColumnBtn.addEventListener('click', () => {
-      if (!activeTable) return;
-      document.getElementById('new-col-name').value = '';
-      document.getElementById('new-col-type').selectedIndex = 0;
-      document.getElementById('new-col-required').checked = false;
-      document.getElementById('column-modal-title').innerText = `Add Field to "${activeTable}"`;
-      columnCreatorModal.style.display = 'flex';
-    });
-
-    window.closeColumnCreatorModal = function() {
-      columnCreatorModal.style.display = 'none';
-    }
-
-    // Column Creator Submit
-    columnCreatorForm.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      if (!activeTable) return;
-
-      const colName = document.getElementById('new-col-name').value.trim().toLowerCase();
-      const colType = document.getElementById('new-col-type').value;
-      const isRequired = document.getElementById('new-col-required').checked;
-
-      if (!colName) return;
-
-      // Check if column already exists
-      const exists = activeColumns.some(col => col.column_name === colName);
-      if (exists) {
-        showToast('Field/column name already exists in this table.', 'error');
-        return;
-      }
-
-      // Build ALTER TABLE query
-      const nullability = isRequired ? 'NOT NULL' : 'NULL';
-      
-      // If NOT NULL is specified, a column cannot be added directly without a DEFAULT value if there are existing rows.
-      // So for safety we add DEFAULT if NOT NULL, e.g. text -> DEFAULT '', integer -> DEFAULT 0, boolean -> DEFAULT false
-      let defaultVal = '';
-      if (isRequired) {
-        if (colType === 'boolean') defaultVal = " DEFAULT false";
-        else if (colType === 'integer' || colType === 'numeric') defaultVal = " DEFAULT 0";
-        else if (colType === 'timestamp with time zone') defaultVal = " DEFAULT now()";
-        else defaultVal = " DEFAULT ''";
-      }
-
-      const sqlQuery = `
-        ALTER TABLE public."${activeTable}" 
-        ADD COLUMN "${colName}" ${colType} ${nullability} ${defaultVal};
-      `;
-
-      const submitBtn = document.getElementById('column-creator-submit');
-      submitBtn.disabled = true;
-      submitBtn.innerText = 'Adding field...';
-
-      try {
-        const response = await fetch('/api/sql', {
-          method: 'POST',
-          headers: getAuthHeaders(),
-          body: JSON.stringify({ query: sqlQuery })
-        });
-        
-        const data = await response.json();
-        if (!response.ok) {
-          throw new Error(data.error || 'Failed to add column.');
-        }
-
-        showToast(`Field "${colName}" added to "${activeTable}" successfully!`, 'success');
-        closeColumnCreatorModal();
-        
-        // Reload table schema and rows
-        selectTable(activeTable);
-      } catch (err) {
-        showToast(err.message, 'error');
-      } finally {
-        submitBtn.disabled = false;
-        submitBtn.innerText = 'Add Field';
-      }
-    });
-
-    // --- SQL EXPLORER MODAL ---
-
-    openSqlBtn.addEventListener('click', () => {
-      sqlInput.value = '';
-      sqlOutput.style.display = 'none';
-      sqlModal.style.display = 'flex';
-    });
-
-    function closeSqlModal() {
-      sqlModal.style.display = 'none';
-    }
-
-    runSqlBtn.addEventListener('click', async () => {
-      const query = sqlInput.value.trim();
-      if (!query) return;
-
-      runSqlBtn.disabled = true;
-      runSqlBtn.innerText = 'Running query...';
-      sqlOutput.style.display = 'none';
-
-      try {
-        const response = await fetch('/api/sql', {
-          method: 'POST',
-          headers: getAuthHeaders(),
-          body: JSON.stringify({ query })
-        });
-
-        const data = await response.json();
-        
-        if (!response.ok) {
-          throw new Error(data.error || 'Query failed to run.');
-        }
-
-        sqlOutput.className = 'sql-log';
-        sqlOutput.innerText = 'Query executed successfully!\n' + (data.result ? JSON.stringify(data.result, null, 2) : '');
-        sqlOutput.style.display = 'block';
-        showToast('SQL script query completed', 'success');
-
-        // Reload tables list in background
-        fetchTables();
-      } catch (err) {
-        sqlOutput.className = 'sql-log error';
-        sqlOutput.innerText = `PostgreSQL Error:\n${err.message}`;
-        sqlOutput.style.display = 'block';
-        showToast('SQL Execution failed', 'error');
-      } finally {
-        runSqlBtn.disabled = false;
-        runSqlBtn.innerText = 'Run SQL Script';
-      }
-    });
-
-    // Storage Error modal open/close
-    window.openStorageErrorModal = function() {
-      storageErrorModal.style.display = 'flex';
-    };
-    window.closeStorageErrorModal = function() {
-      storageErrorModal.style.display = 'none';
-    };
-
-    // --- UI COMMON TOAST HELPER ---
-    function showToast(message, type = 'success') {
-      toastMsg.innerText = message;
-      toast.className = `toast show toast-${type}`;
-      setTimeout(() => {
-        toast.classList.remove('show');
-      }, 4000);
-    }
-  </script>
+  <!-- App logic script -->
+  <script src="/app.js"></script>
 </body>
 </html>

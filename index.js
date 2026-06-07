@@ -408,6 +408,11 @@ app.post('/api/sql', authenticateUser, async (req, res) => {
   }
 });
 
+// Serve Admin CMS fallback for SPA routing
+app.get('/admin*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'admin', 'index.html'));
+});
+
 // Serve the index.html front-end for everything else
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
